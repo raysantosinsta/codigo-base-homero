@@ -42,8 +42,10 @@
 
   <div id="instructions">
     <strong>Gestos disponíveis:</strong><br>
+    • 1 dedo: arraste horizontal → gira no eixo Y<br>
+    • 1 dedo: arraste vertical → gira no eixo X<br>
     • 2 dedos: abra / feche → zoom<br>
-    • 2 dedos: gire → rotacione<br>
+    • 2 dedos: gire → rotaciona geral<br>
     • Toque rápido: zoom pequeno<br>
     • Áudio: toque no coração para ativar
   </div>
@@ -68,7 +70,7 @@
         rotation="0 0 0"
         material="depthTest: true; depthWrite: true"
         gesture-handler="enabled: true; rotateOnPinch: true; scaleOnPinch: true"
-        tap-zoom
+        onefinger-control="speed: 0.9; zoomAmount: 0.2"
       >
         <a-entity
           sound="src: #batida; loop: true; volume: 0.7; positional: false"
@@ -79,18 +81,22 @@
 
   </a-scene>
 
-  <!-- Componente simples só para zoom no tap -->
+  <!-- Componente que adiciona drag com 1 dedo (horizontal e vertical) + zoom no tap + áudio -->
   <script>
-    AFRAME.registerComponent('tap-zoom', {
+    AFRAME.registerComponent('onefinger-control', {
       schema: {
+        speed: { type: 'number', default: 0.9 },
         zoomAmount: { type: 'number', default: 0.2 }
       },
 
       init: function () {
         const el = this.el;
+        let lastX = 0;
+        let lastY = 0;
+        let isDragging = false;
         let audioStarted = false;
-
-        // Função para iniciar áudio
+        
+        // Função para iniciar o áudio
         const startAudio = () => {
           const soundEl = el.querySelector('#heart-sound');
           if (soundEl && soundEl.components && soundEl.components.sound && !audioStarted) {
@@ -100,14 +106,49 @@
           }
         };
 
-        // Evento de clique/toque
-        el.addEventListener('click', (e) => {
-          // Inicia o áudio no primeiro clique
+        // Iniciar áudio no primeiro toque
+        el.sceneEl.addEventListener('onefingerstart', (e) => {
+          lastX = e.detail.position.x;
+          lastY = e.detail.position.y;
           startAudio();
+        });
+
+        // Drag com UM dedo - Horizontal e Vertical
+        el.sceneEl.addEventListener('onefingermove', (e) => {
+          if (!el.object3D.visible) return;
+
+          const deltaX = e.detail.position.x - lastX;
+          const deltaY = e.detail.position.y - lastY;
+
+          const rot = el.getAttribute('rotation') || {x:0, y:0, z:0};
           
-          // Aplica zoom pequeno
+          // Horizontal: gira no eixo Y
+          // Vertical: gira no eixo X
+          el.setAttribute('rotation', {
+            x: rot.x + deltaY * this.data.speed,  // Vertical controla X
+            y: rot.y - deltaX * this.data.speed,  // Horizontal controla Y
+            z: rot.z
+          });
+
+          lastX = e.detail.position.x;
+          lastY = e.detail.position.y;
+          isDragging = true;
+        });
+
+        // Quando o dedo levanta
+        el.sceneEl.addEventListener('onefingerend', () => {
+          if (isDragging) {
+            isDragging = false;
+            return;
+          }
+
+          // Se NÃO foi drag → é tap → aplica zoom pequeno
+          el.emit('tap');
+
+          // Pega a escala atual
           const currentScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
           
+          // Aplica zoom pequeno
           el.setAttribute('scale', {
             x: currentScale.x + this.data.zoomAmount,
             y: currentScale.y + this.data.zoomAmount,
@@ -120,11 +161,30 @@
           }, 280);
         });
 
-        // Tenta iniciar áudio no primeiro toque também
-        el.addEventListener('touchstart', () => {
-          startAudio();
-        });
+        // Iniciar áudio também no clique/touch direto no elemento
+        el.addEventListener('click', startAudio);
+        el.addEventListener('touchstart', startAudio);
       }
+    });
+
+    // Script adicional para garantir que o áudio inicie no primeiro toque
+    document.addEventListener('DOMContentLoaded', () => {
+      const initAudio = () => {
+        const heartEl = document.querySelector('#heart');
+        if (heartEl) {
+          const soundEl = heartEl.querySelector('#heart-sound');
+          if (soundEl && soundEl.components && soundEl.components.sound) {
+            soundEl.components.sound.playSound();
+          }
+        }
+        // Remove os listeners após a primeira interação
+        document.removeEventListener('touchstart', initAudio);
+        document.removeEventListener('click', initAudio);
+      };
+
+      // Adiciona listeners para qualquer toque/clique na página
+      document.addEventListener('touchstart', initAudio);
+      document.addEventListener('click', initAudio);
     });
   </script>
 
