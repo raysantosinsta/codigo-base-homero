@@ -22,15 +22,14 @@
   </head>
   <body>
     <div id="ar-overlay">
-      Gestos com dois dedos:<br />
-      • Abra os dedos → Zoom (maior)<br />
-      • Gire os dedos → Rotacione<br />
-      • Coração pulsando automaticamente.
+      • **Zoom:** Use dois dedos (pinça)<br />
+      • **Rotação:** Gire com os dedos<br />
+      • **Pulso:** Automático e ativo
     </div>
 
     <a-scene
       embedded
-      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+      arjs="sourceType: webcam; debugUIEnabled: false;"
       gesture-detector
       renderer="antialias: true; logarithmicDepthBuffer: true;"
     >
@@ -44,26 +43,24 @@
 
       <a-marker preset="hiro">
         <a-entity
-          class="interactivel tocavel"
-          gltf-model="url(realistic_human_heart.glb)"
-          scale="1.2 1.2 1.2"
-          position="0 0.3 0"
-          sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
+          id="heart-wrapper"
+          class="interactivel"
           gesture-handler="enabled: true"
-          
-          /* EFEITO DE PULSO (ANIMAÇÃO) */
-          animation="property: scale; 
-                     to: 1.35 1.35 1.35; 
-                     dir: alternate; 
-                     dur: 600; 
-                     easing: easeInOutQuad; 
-                     loop: true"
-
-          /* INTERAÇÃO AO CLICAR */
-          event-set__enter="_event: mouseenter; scale: 1.8 1.8 1.8"
-          event-set__leave="_event: mouseleave; scale: 1.2 1.2 1.2"
-          material="depthTest: true; depthWrite: true"
-        ></a-entity>
+          position="0 0.3 0"
+          scale="1.2 1.2 1.2"
+        >
+          <a-entity
+            gltf-model="url(realistic_human_heart.glb)"
+            sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
+            animation="property: scale; 
+                       from: 1 1 1;
+                       to: 1.15 1.15 1.15; 
+                       dir: alternate; 
+                       dur: 600; 
+                       easing: easeInOutQuad; 
+                       loop: true"
+          ></a-entity>
+        </a-entity>
       </a-marker>
     </a-scene>
   </body>
