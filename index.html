@@ -8,7 +8,6 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
-    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
 
     <style>
       body { margin: 0; overflow: hidden; }
@@ -22,9 +21,8 @@
   </head>
   <body>
     <div id="ar-overlay">
-      • **Zoom:** Use dois dedos (pinça)<br />
-      • **Rotação:** Gire com os dedos<br />
-      • **Pulso:** Automático e ativo
+      • Use 2 dedos para **Zoom** e **Rotação**<br />
+      • O coração pulsa enquanto você interage
     </div>
 
     <a-scene
@@ -37,31 +35,33 @@
         <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
       </a-assets>
 
-      <a-entity camera>
-        <a-entity cursor="fuse: false" raycaster="objects: .interactivel"></a-entity>
-      </a-entity>
-
-      <a-marker preset="hiro">
+      <a-marker preset="hiro" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false; rayOrigin: mouse;">
+        
         <a-entity
-          id="heart-wrapper"
-          class="interactivel"
-          gesture-handler="enabled: true"
+          id="heart-container"
+          class="clickable"
+          gesture-handler
           position="0 0.3 0"
-          scale="1.2 1.2 1.2"
+          scale="1 1 1"
         >
           <a-entity
             gltf-model="url(realistic_human_heart.glb)"
+            scale="1 1 1"
             sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
             animation="property: scale; 
-                       from: 1 1 1;
-                       to: 1.15 1.15 1.15; 
+                       from: 0.8 0.8 0.8;
+                       to: 1.1 1.1 1.1; 
                        dir: alternate; 
                        dur: 600; 
                        easing: easeInOutQuad; 
                        loop: true"
-          ></a-entity>
+          >
+          </a-entity>
         </a-entity>
+
       </a-marker>
+
+      <a-entity camera></a-entity>
     </a-scene>
   </body>
 </html>
