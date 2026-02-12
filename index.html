@@ -1,6 +1,8 @@
+<!doctype html>
 <html>
   <head>
-    <title>Projeto AR - Coração Contínuo</title>
+    <title>AR Medical Dashboard - NestJS Integration</title>
+    <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
@@ -9,15 +11,50 @@
       body {
         margin: 0;
         overflow: hidden;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      /* Painel de Dados 2D sobreposto */
+      #api-monitor {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        padding: 20px;
+        background: rgba(10, 25, 41, 0.85);
+        color: #00e5ff;
+        border-left: 5px solid #00e5ff;
+        border-radius: 4px;
+        z-index: 1000;
+        min-width: 200px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      }
+      .label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #888;
+        letter-spacing: 1px;
+      }
+      .value {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .status {
+        font-size: 14px;
+        font-weight: 500;
       }
     </style>
   </head>
-  <body>
-    <a-scene embedded arjs="sourceType: webcam;">
-      <a-assets>
-        <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
-      </a-assets>
 
+  <body>
+    <div id="api-monitor">
+      <div class="label">Frequência Cardíaca</div>
+      <div id="bpm-val" class="value">-- BPM</div>
+      <div class="label">Análise do Sistema</div>
+      <div id="status-val" class="status">Conectando ao NestJS...</div>
+    </div>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
       <a-entity camera>
         <a-entity
           cursor="rayOrigin: mouse"
@@ -27,17 +64,73 @@
 
       <a-marker preset="hiro">
         <a-entity
+          id="heart-model"
           class="clickable"
           gltf-model="url(realistic_human_heart.glb)"
           scale="1 1 1"
-          position="0 0 0"
-          sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
-          event-set__enter="_event: mouseenter; scale: 1.2 1.2 1.2"
+          position="0 0.5 0"
+          material="emissiveIntensity: 0.7"
+          event-set__enter="_event: mouseenter; scale: 1.1 1.1 1.1"
           event-set__leave="_event: mouseleave; scale: 1 1 1"
-          gesture-handler
+        >
+        </a-entity>
+
+        <a-entity
+          id="ar-label"
+          position="0 1.6 0"
+          text="value: INICIALIZANDO; align: center; width: 4; color: #00e5ff; font: monoid"
         >
         </a-entity>
       </a-marker>
     </a-scene>
+
+    <script>
+      const model = document.querySelector("#heart-model");
+      const bpmText = document.querySelector("#bpm-val");
+      const statusText = document.querySelector("#status-val");
+      const arLabel = document.querySelector("#ar-label");
+
+      // Endereço da sua API NestJS
+      const ENDPOINT = "http://localhost:3000/paciente/1";
+
+      async function fetchData() {
+        try {
+          const res = await fetch(ENDPOINT);
+          const data = await res.json();
+
+          // 1. Atualiza Interface 2D
+          bpmText.innerText = `${data.bpm} BPM`;
+          statusText.innerText = data.status;
+          statusText.style.color = data.cor;
+
+          // 2. Atualiza Modelo 3D (Cor e Escala baseada no batimento)
+          // Mudamos a cor para o que vem da API (vermelho se > 100)
+          model.setAttribute(
+            "material",
+            `color: ${data.cor}; emissive: ${data.cor}`,
+          );
+
+          // Simula uma pequena pulsação visual baseada no BPM
+          const pulseScale = 1 + data.bpm / 500;
+          model.setAttribute(
+            "scale",
+            `${pulseScale} ${pulseScale} ${pulseScale}`,
+          );
+
+          // 3. Atualiza Texto flutuante no AR
+          arLabel.setAttribute(
+            "text",
+            `value: ${data.bpm} BPM\n${data.status}; color: ${data.cor}`,
+          );
+        } catch (err) {
+          statusText.innerText = "ERRO: API OFFLINE";
+          statusText.style.color = "#ff0000";
+          console.error("Erro ao consumir API NestJS:", err);
+        }
+      }
+
+      // Consulta a API a cada 2 segundos
+      setInterval(fetchData, 2000);
+    </script>
   </body>
 </html>

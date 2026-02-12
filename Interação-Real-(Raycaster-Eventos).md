@@ -1,0 +1,43 @@
+<html>
+  <head>
+    <title>Projeto AR - Coração Contínuo</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <a-scene embedded arjs="sourceType: webcam;">
+      <a-assets>
+        <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <a-entity camera>
+        <a-entity
+          cursor="rayOrigin: mouse"
+          raycaster="objects: .clickable"
+        ></a-entity>
+      </a-entity>
+
+      <a-marker preset="hiro">
+        <a-entity
+          class="clickable"
+          gltf-model="url(realistic_human_heart.glb)"
+          scale="1 1 1"
+          position="0 0 0"
+          sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
+          event-set__enter="_event: mouseenter; scale: 1.2 1.2 1.2"
+          event-set__leave="_event: mouseleave; scale: 1 1 1"
+          gesture-handler
+        >
+        </a-entity>
+      </a-marker>
+    </a-scene>
+  </body>
+</html>
