@@ -1,172 +1,86 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Projeto AR - Coração Humano Interativo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<html>
+  <head>
+    <title>Projeto AR - Coração Humano Interativo</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-  <!-- A-Frame 1.6.0 -->
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <!-- A-Frame 1.6.0 (compatível com AR.js 3.4.7) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 
-  <!-- AR.js 3.4.7 -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+    <!-- AR.js versão estável 3.4.7 (muito mais confiável que master) -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
 
-  <!-- Gestos pinch + rotação com dois dedos (mantém zoom e rotate) -->
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
+    <!-- Gestos (pinch zoom + rotação) - continua funcionando -->
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #000;
-    }
-    #instructions {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 12px 16px;
-      border-radius: 10px;
-      font-size: 15px;
-      line-height: 1.5;
-      pointer-events: none;
-      z-index: 100;
-      max-width: 340px;
-    }
-  </style>
-</head>
-<body>
+    <!-- Eventos hover/click -->
+    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
 
-  <div id="instructions">
-    <strong>Gestos disponíveis:</strong><br>
-    • 1 dedo: arraste para girar o coração (esquerda/direita)<br>
-    • 2 dedos: abra / feche → zoom<br>
-    • 2 dedos: gire → rotacione<br>
-    • Toque rápido (sem arrastar): destaca o modelo
-  </div>
-
-  <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-    gesture-detector
-    renderer="antialias: true; logarithmicDepthBuffer: true;"
-  >
-    <a-assets>
-      <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
-    </a-assets>
-
-    <!-- Câmera -->
-    <a-entity camera>
-      <a-entity
-        cursor="fuse: true; fuseTimeout: 1200"
-        raycaster="objects: .interactivel"
-        position="0 0 -0.1"
-      ></a-entity>
-    </a-entity>
-
-    <a-marker preset="hiro">
-      <a-entity
-        id="heart"
-        class="interactivel"
-        gltf-model="url(realistic_human_heart.glb)"
-        scale="1.2 1.2 1.2"
-        position="0 0.3 0"
-        rotation="0 0 0"
-        sound="src: #batida; autoplay: true; loop: true; volume: 0.7; positional: false"
-        material="depthTest: true; depthWrite: true"
-
-        gesture-handler="enabled: true; rotateOnPinch: true; scaleOnPinch: true"
-
-        onefinger-drag="speed: 0.8"
-      ></a-entity>
-    </a-marker>
-
-  </a-scene>
-
-  <!-- Componente para drag com 1 dedo + tap (usando touch nativo) -->
-  <script>
-    AFRAME.registerComponent('onefinger-drag', {
-      schema: {
-        speed: { type: 'number', default: 0.8 }  // Ajuste: 0.5 = lento, 1.5 = rápido
-      },
-
-      init: function () {
-        const el = this.el;
-        let lastX = 0;
-        let isOneFinger = false;
-        let touchStartTime = 0;
-
-        // Início do toque
-        const onTouchStart = (e) => {
-          if (e.touches.length === 1 && el.object3D.visible) {
-            isOneFinger = true;
-            lastX = e.touches[0].clientX;
-            touchStartTime = Date.now();
-          } else {
-            isOneFinger = false;  // Se mais de 1 dedo, ignora drag
-          }
-        };
-
-        // Movimento (drag)
-        const onTouchMove = (e) => {
-          if (!isOneFinger || e.touches.length !== 1 || !el.object3D.visible) return;
-
-          const currentX = e.touches[0].clientX;
-          const deltaX = currentX - lastX;
-
-          const rot = el.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
-          el.setAttribute('rotation', {
-            x: rot.x,
-            y: rot.y + deltaX * this.data.speed * -1,  // * -1 = direção natural (arrasta direita → gira direita)
-            z: rot.z
-          });
-
-          lastX = currentX;
-          e.preventDefault();  // Evita scroll da página
-        };
-
-        // Fim do toque → verifica se foi tap
-        const onTouchEnd = (e) => {
-          if (!isOneFinger || !el.object3D.visible) return;
-
-          const duration = Date.now() - touchStartTime;
-
-          if (duration < 250) {  // Toque rápido = tap
-            const originalScale = el.getAttribute('scale') || { x: 1.2, y: 1.2, z: 1.2 };
-            el.setAttribute('scale', {
-              x: originalScale.x * 1.5,
-              y: originalScale.y * 1.5,
-              z: originalScale.z * 1.5
-            });
-            setTimeout(() => {
-              el.setAttribute('scale', originalScale);
-            }, 300);
-          }
-
-          isOneFinger = false;
-        };
-
-        // Adiciona listeners no document (captura global)
-        document.addEventListener('touchstart', onTouchStart, { passive: false });
-        document.addEventListener('touchmove', onTouchMove, { passive: false });
-        document.addEventListener('touchend', onTouchEnd);
-
-        // Limpeza ao remover componente (boa prática)
-        this.cleanup = () => {
-          document.removeEventListener('touchstart', onTouchStart);
-          document.removeEventListener('touchmove', onTouchMove);
-          document.removeEventListener('touchend', onTouchEnd);
-        };
-      },
-
-      remove: function () {
-        if (this.cleanup) this.cleanup();
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
       }
-    });
-  </script>
+      #ar-overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: Arial, sans-serif;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 8px 12px;
+        border-radius: 6px;
+        pointer-events: none;
+        font-size: 14px;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ar-overlay">
+      Gestos com dois dedos:<br />
+      • Abra os dedos → Zoom in (maior)<br />
+      • Feche os dedos → Zoom out (menor)<br />
+      • Gire os dedos → Rotacione<br /><br />
+    </div>
 
-</body>
+    <a-scene
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+      gesture-detector
+      renderer="antialias: true; logarithmicDepthBuffer: true;"
+    >
+      <a-assets>
+        <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <a-entity camera>
+        <a-entity
+          cursor="fuse: true; fuseTimeout: 1500"
+          raycaster="objects: .interactivel"
+        ></a-entity>
+      </a-entity>
+
+      <a-marker preset="hiro">
+        <a-entity
+          class="interactivel tocavel"
+          gltf-model="url(realistic_human_heart.glb)"
+          scale="1.2 1.2 1.2"
+          position="0 0.3 0"
+          rotation="0 0 0"
+          sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
+          gesture-handler="enabled: true"
+          event-set__enter="_event: mouseenter; scale: 1.8 1.8 1.8"
+          event-set__leave="_event: mouseleave; scale: 1.2 1.2 1.2"
+          event-set__click="_event: click; scale: 1.8 1.8 1.8"
+          event-set__clickleave="_event: click; delay: 800; scale: 1.2 1.2 1.2"
+          material="depthTest: true; depthWrite: true"
+        ></a-entity>
+      </a-marker>
+    </a-scene>
+  </body>
 </html>
