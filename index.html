@@ -11,7 +11,7 @@
   <!-- AR.js 3.4.7 -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
 
-  <!-- Gestos pinch + rotação com dois dedos -->
+  <!-- Gestos pinch + rotação com dois dedos (mantém para zoom e rotate) -->
   <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
   <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
@@ -42,7 +42,7 @@
 
   <div id="instructions">
     <strong>Gestos disponíveis:</strong><br>
-    • 1 dedo: arraste para girar o coração<br>
+    • 1 dedo: arraste para girar o coração (horizontal)<br>
     • 2 dedos: abra / feche → zoom<br>
     • 2 dedos: gire → rotacione<br>
     • Toque rápido: destaca o modelo
@@ -80,67 +80,72 @@
 
         gesture-handler="enabled: true; rotateOnPinch: true; scaleOnPinch: true"
 
-        onefinger-control="speed: 0.9"
+        onefinger-control="speed: 1.5"
       ></a-entity>
     </a-marker>
 
   </a-scene>
 
-  <!-- Componente que adiciona drag com 1 dedo + tap -->
+  <!-- Componente ajustado: usa eventos touch nativos para drag com 1 dedo (mais confiável) -->
   <script>
     AFRAME.registerComponent('onefinger-control', {
       schema: {
-        speed: { type: 'number', default: 0.9 }
+        speed: { type: 'number', default: 1.5 }  // Ajuste aqui se muito rápido/lento
       },
 
       init: function () {
         const el = this.el;
         let lastX = 0;
         let isDragging = false;
+        let touchStartTime = 0;
+        let touchEndTime = 0;
 
-        // Drag com UM dedo (evento emitido pelo gesture-detector)
-        this.el.sceneEl.addEventListener('onefingermove', (e) => {
-          if (!el.object3D.visible) return;
+        // Início do toque
+        document.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1 || !el.object3D.visible) return;
+          lastX = e.touches[0].clientX;
+          touchStartTime = Date.now();
+          isDragging = false;
+        });
 
-          const deltaX = e.detail.position.x - lastX;
+        // Movimento do toque (drag)
+        document.addEventListener('touchmove', (e) => {
+          if (e.touches.length !== 1 || !el.object3D.visible) return;
 
-          const rot = el.getAttribute('rotation') || {x:0, y:0, z:0};
+          const currentX = e.touches[0].clientX;
+          const deltaX = currentX - lastX;
+
+          const rot = el.getAttribute('rotation') || {x: 0, y: 0, z: 0};
           el.setAttribute('rotation', {
             x: rot.x,
-            y: rot.y - deltaX * this.data.speed,
+            y: rot.y + deltaX * this.data.speed * -1,  // Invertido para direção natural (esquerda/direita)
             z: rot.z
           });
 
-          lastX = e.detail.position.x;
+          lastX = currentX;
           isDragging = true;
         });
 
-        // Quando o dedo levanta
-        this.el.sceneEl.addEventListener('onefingerend', () => {
-          if (isDragging) {
+        // Fim do toque
+        document.addEventListener('touchend', (e) => {
+          if (e.touches.length !== 0 || !el.object3D.visible) return;  // Garanta que é fim de 1 dedo
+          touchEndTime = Date.now();
+
+          if (isDragging || (touchEndTime - touchStartTime > 200)) {
             isDragging = false;
             return;
           }
 
-          // Se NÃO foi drag → é tap
-          el.emit('tap');
-
-          // Feedback visual simples
+          // Se não foi drag e toque rápido (<200ms) → tap
           const originalScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
           el.setAttribute('scale', {
             x: originalScale.x * 1.45,
             y: originalScale.y * 1.45,
             z: originalScale.z * 1.45
           });
-
           setTimeout(() => {
             el.setAttribute('scale', originalScale);
           }, 280);
-        });
-
-        // Opcional: guardar posição inicial do toque
-        el.sceneEl.addEventListener('onefingerstart', (e) => {
-          lastX = e.detail.position.x;
         });
       }
     });
