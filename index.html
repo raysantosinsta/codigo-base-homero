@@ -45,7 +45,7 @@
     • 1 dedo: arraste para girar o coração<br>
     • 2 dedos: abra / feche → zoom<br>
     • 2 dedos: gire → rotacione<br>
-    • Toque rápido: destaca o modelo
+    • Toque rápido: zoom pequeno
   </div>
 
   <a-scene
@@ -80,23 +80,28 @@
 
         gesture-handler="enabled: true; rotateOnPinch: true; scaleOnPinch: true"
 
-        onefinger-control="speed: 0.9"
+        onefinger-control="speed: 0.9; zoomAmount: 0.2"
       ></a-entity>
     </a-marker>
 
   </a-scene>
 
-  <!-- Componente que adiciona drag com 1 dedo + tap -->
+  <!-- Componente que adiciona drag com 1 dedo + tap com zoom pequeno -->
   <script>
     AFRAME.registerComponent('onefinger-control', {
       schema: {
-        speed: { type: 'number', default: 0.9 }
+        speed: { type: 'number', default: 0.9 },
+        zoomAmount: { type: 'number', default: 0.2 }  // Quantidade do zoom pequeno
       },
 
       init: function () {
         const el = this.el;
         let lastX = 0;
         let isDragging = false;
+        let currentScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
+        
+        // Armazena a escala base
+        this.baseScale = currentScale;
 
         // Drag com UM dedo (evento emitido pelo gesture-detector)
         this.el.sceneEl.addEventListener('onefingermove', (e) => {
@@ -122,23 +127,30 @@
             return;
           }
 
-          // Se NÃO foi drag → é tap
+          // Se NÃO foi drag → é tap → aplica zoom pequeno
           el.emit('tap');
 
-          // Feedback visual simples
-          const originalScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
+          // Pega a escala atual
+          const currentScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
+          
+          // Aplica um zoom pequeno (aumenta 0.2 em cada eixo)
           el.setAttribute('scale', {
-            x: originalScale.x * 1.45,
-            y: originalScale.y * 1.45,
-            z: originalScale.z * 1.45
+            x: currentScale.x + this.data.zoomAmount,
+            y: currentScale.y + this.data.zoomAmount,
+            z: currentScale.z + this.data.zoomAmount
           });
 
+          // Volta ao tamanho normal após 280ms
           setTimeout(() => {
-            el.setAttribute('scale', originalScale);
+            el.setAttribute('scale', {
+              x: currentScale.x,
+              y: currentScale.y,
+              z: currentScale.z
+            });
           }, 280);
         });
 
-        // Opcional: guardar posição inicial do toque
+        // Guarda posição inicial do toque
         el.sceneEl.addEventListener('onefingerstart', (e) => {
           lastX = e.detail.position.x;
         });
