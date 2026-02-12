@@ -21,31 +21,37 @@
   </head>
   <body>
     <div id="ar-overlay">
-      • Use 2 dedos para **Zoom** e **Rotação**<br />
-      • O coração pulsa enquanto você interage
+      • **Zoom/Girar:** Use dois dedos sobre o coração<br />
+      • **Ajuste:** Centralizado no Hiro
     </div>
 
     <a-scene
       embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
       gesture-detector
-      renderer="antialias: true; logarithmicDepthBuffer: true;"
+      renderer="antialias: true; logarithmicDepthBuffer: true; colorManagement: true;"
     >
       <a-assets>
         <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
       </a-assets>
 
-      <a-marker preset="hiro" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false; rayOrigin: mouse;">
+      <a-marker 
+        preset="hiro" 
+        id="marker"
+        raycaster="objects: .clickable" 
+        emitevents="true" 
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
         
         <a-entity
           id="heart-container"
           class="clickable"
-          gesture-handler
-          position="0 0.3 0"
-          scale="1 1 1"
+          gesture-handler="minScale: 0.2; maxScale: 10"
+          position="0 0 0"
         >
           <a-entity
             gltf-model="url(realistic_human_heart.glb)"
+            position="0 0 0" 
             scale="1 1 1"
             sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
             animation="property: scale; 
@@ -63,5 +69,13 @@
 
       <a-entity camera></a-entity>
     </a-scene>
+
+    <script>
+      // Garante que o som toque no Chrome após o primeiro toque
+      window.addEventListener('click', function () {
+        const audio = document.querySelector('#batida');
+        if (audio && audio.paused) audio.play();
+      }, { once: true });
+    </script>
   </body>
 </html>
