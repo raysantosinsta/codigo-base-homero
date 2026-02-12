@@ -1,192 +1,86 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Projeto AR - Coração Humano Interativo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<html>
+  <head>
+    <title>Projeto AR - Coração Humano Interativo</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-  <!-- A-Frame 1.6.0 -->
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <!-- A-Frame 1.6.0 (compatível com AR.js 3.4.7) -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 
-  <!-- AR.js 3.4.7 -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+    <!-- AR.js versão estável 3.4.7 (muito mais confiável que master) -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
 
-  <!-- Gestos pinch + rotação com dois dedos -->
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
+    <!-- Gestos (pinch zoom + rotação) - continua funcionando -->
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #000;
-    }
-    #instructions {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: rgba(0, 0, 0, 0.55);
-      padding: 12px 16px;
-      border-radius: 10px;
-      font-size: 15px;
-      line-height: 1.5;
-      pointer-events: none;
-      z-index: 100;
-      max-width: 320px;
-    }
-  </style>
-</head>
-<body>
+    <!-- Eventos hover/click -->
+    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
 
-  <div id="instructions">
-    <strong>Gestos disponíveis:</strong><br>
-    • 1 dedo: arraste horizontal → gira no eixo Y<br>
-    • 1 dedo: arraste vertical → gira no eixo X<br>
-    • 2 dedos: abra / feche → zoom<br>
-    • 2 dedos: gire → rotaciona geral<br>
-    • Toque rápido: zoom pequeno<br>
-    • Áudio: toque no coração para ativar
-  </div>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #ar-overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: Arial, sans-serif;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 8px 12px;
+        border-radius: 6px;
+        pointer-events: none;
+        font-size: 14px;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ar-overlay">
+      Gestos com dois dedos:<br />
+      • Abra os dedos → Zoom in (maior)<br />
+      • Feche os dedos → Zoom out (menor)<br />
+      • Gire os dedos → Rotacione<br /><br />
+    </div>
 
-  <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-    gesture-detector
-    renderer="antialias: true; logarithmicDepthBuffer: true;"
-  >
-    <a-assets>
-      <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
-    </a-assets>
+    <a-scene
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+      gesture-detector
+      renderer="antialias: true; logarithmicDepthBuffer: true;"
+    >
+      <a-assets>
+        <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
+      </a-assets>
 
-    <a-marker preset="hiro">
-      <a-entity
-        id="heart"
-        class="interactivel"
-        gltf-model="url(realistic_human_heart.glb)"
-        scale="1.2 1.2 1.2"
-        position="0 0.3 0"
-        rotation="0 0 0"
-        material="depthTest: true; depthWrite: true"
-        gesture-handler="enabled: true; rotateOnPinch: true; scaleOnPinch: true"
-        onefinger-control="speed: 0.9; zoomAmount: 0.2"
-      >
+      <a-entity camera>
         <a-entity
-          sound="src: #batida; loop: true; volume: 0.7; positional: false"
-          id="heart-sound"
+          cursor="fuse: true; fuseTimeout: 1500"
+          raycaster="objects: .interactivel"
         ></a-entity>
       </a-entity>
-    </a-marker>
 
-  </a-scene>
-
-  <!-- Componente que adiciona drag com 1 dedo (horizontal e vertical) + zoom no tap + áudio -->
-  <script>
-    AFRAME.registerComponent('onefinger-control', {
-      schema: {
-        speed: { type: 'number', default: 0.9 },
-        zoomAmount: { type: 'number', default: 0.2 }
-      },
-
-      init: function () {
-        const el = this.el;
-        let lastX = 0;
-        let lastY = 0;
-        let isDragging = false;
-        let audioStarted = false;
-        
-        // Função para iniciar o áudio
-        const startAudio = () => {
-          const soundEl = el.querySelector('#heart-sound');
-          if (soundEl && soundEl.components && soundEl.components.sound && !audioStarted) {
-            soundEl.components.sound.playSound();
-            audioStarted = true;
-            console.log('Áudio iniciado');
-          }
-        };
-
-        // Iniciar áudio no primeiro toque
-        el.sceneEl.addEventListener('onefingerstart', (e) => {
-          lastX = e.detail.position.x;
-          lastY = e.detail.position.y;
-          startAudio();
-        });
-
-        // Drag com UM dedo - Horizontal e Vertical
-        el.sceneEl.addEventListener('onefingermove', (e) => {
-          if (!el.object3D.visible) return;
-
-          const deltaX = e.detail.position.x - lastX;
-          const deltaY = e.detail.position.y - lastY;
-
-          const rot = el.getAttribute('rotation') || {x:0, y:0, z:0};
-          
-          // Horizontal: gira no eixo Y
-          // Vertical: gira no eixo X
-          el.setAttribute('rotation', {
-            x: rot.x + deltaY * this.data.speed,  // Vertical controla X
-            y: rot.y - deltaX * this.data.speed,  // Horizontal controla Y
-            z: rot.z
-          });
-
-          lastX = e.detail.position.x;
-          lastY = e.detail.position.y;
-          isDragging = true;
-        });
-
-        // Quando o dedo levanta
-        el.sceneEl.addEventListener('onefingerend', () => {
-          if (isDragging) {
-            isDragging = false;
-            return;
-          }
-
-          // Se NÃO foi drag → é tap → aplica zoom pequeno
-          el.emit('tap');
-
-          // Pega a escala atual
-          const currentScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
-          
-          // Aplica zoom pequeno
-          el.setAttribute('scale', {
-            x: currentScale.x + this.data.zoomAmount,
-            y: currentScale.y + this.data.zoomAmount,
-            z: currentScale.z + this.data.zoomAmount
-          });
-
-          // Volta ao tamanho normal
-          setTimeout(() => {
-            el.setAttribute('scale', currentScale);
-          }, 280);
-        });
-
-        // Iniciar áudio também no clique/touch direto no elemento
-        el.addEventListener('click', startAudio);
-        el.addEventListener('touchstart', startAudio);
-      }
-    });
-
-    // Script adicional para garantir que o áudio inicie no primeiro toque
-    document.addEventListener('DOMContentLoaded', () => {
-      const initAudio = () => {
-        const heartEl = document.querySelector('#heart');
-        if (heartEl) {
-          const soundEl = heartEl.querySelector('#heart-sound');
-          if (soundEl && soundEl.components && soundEl.components.sound) {
-            soundEl.components.sound.playSound();
-          }
-        }
-        // Remove os listeners após a primeira interação
-        document.removeEventListener('touchstart', initAudio);
-        document.removeEventListener('click', initAudio);
-      };
-
-      // Adiciona listeners para qualquer toque/clique na página
-      document.addEventListener('touchstart', initAudio);
-      document.addEventListener('click', initAudio);
-    });
-  </script>
-
-</body>
+      <a-marker preset="hiro">
+        <a-entity
+          class="interactivel tocavel"
+          gltf-model="url(realistic_human_heart.glb)"
+          scale="1.2 1.2 1.2"
+          position="0 0.3 0"
+          rotation="0 0 0"
+          sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
+          gesture-handler="enabled: true"
+          event-set__enter="_event: mouseenter; scale: 1.8 1.8 1.8"
+          event-set__leave="_event: mouseleave; scale: 1.2 1.2 1.2"
+          event-set__click="_event: click; scale: 1.8 1.8 1.8"
+          event-set__clickleave="_event: click; delay: 800; scale: 1.2 1.2 1.2"
+          material="depthTest: true; depthWrite: true"
+        ></a-entity>
+      </a-marker>
+    </a-scene>
+  </body>
 </html>
