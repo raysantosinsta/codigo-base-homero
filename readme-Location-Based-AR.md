@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Projeto AR - Coração Realista (Markerless)</title>
+    
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; }
+        .instrucao {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="instrucao">Aponte o celular para o horizonte e aguarde o GPS.</div>
+
+    <a-scene
+        vr-mode-ui="enabled: false"
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false;">
+
+        <a-camera 
+            gps-camera="minDistance: 1; maxDistance: 150;" 
+            rotation-reader>
+        </a-camera>
+
+        <a-entity
+            id="modelo-coracao"
+            gltf-model="url(realistic_human_heart.glb)"
+            scale="3 3 3"
+            look-at="[gps-camera]"
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"
+            visible="false">
+        </a-entity>
+
+    </a-scene>
+
+    <script>
+        // Script para colocar o objeto na sua frente assim que o GPS carregar
+        window.onload = () => {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const el = document.querySelector('#modelo-coracao');
+                
+                // Pegamos sua posição atual e adicionamos um pequeno offset (0.0001)
+                // para o objeto não ficar exatamente "dentro" de você
+                const lat = position.coords.latitude + 0.0001; 
+                const lon = position.coords.longitude + 0.0001;
+
+                el.setAttribute('gps-entity-place', `latitude: ${lat}; longitude: ${lon};`);
+                el.setAttribute('visible', 'true');
+                
+                console.log(`Coração posicionado em: ${lat}, ${lon}`);
+            }, (err) => {
+                console.error("Erro ao obter GPS", err);
+                alert("Por favor, ative o GPS para ver o modelo.");
+            }, {
+                enableHighAccuracy: true
+            });
+        };
+    </script>
+</body>
+</html>
+
+<!--  tem que ir para fora de casa para poder funcionar por  -->
+<!-- O tempo de espera no Location-Based AR é relativo, pois depende da precisão do sinal de satélite que o seu celular está recebendo. Geralmente, leva entre 5 a 15 segundos, mas se você estiver em ambiente fechado, pode nunca carregar ou aparecer a quilômetros de distância. -->
