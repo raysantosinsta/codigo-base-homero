@@ -45,7 +45,8 @@
     • 1 dedo: arraste para girar o coração<br>
     • 2 dedos: abra / feche → zoom<br>
     • 2 dedos: gire → rotacione<br>
-    • Toque rápido: zoom pequeno
+    • Toque rápido: zoom pequeno<br>
+    • Áudio: toque em qualquer lugar para ativar
   </div>
 
   <a-scene
@@ -75,7 +76,6 @@
         scale="1.2 1.2 1.2"
         position="0 0.3 0"
         rotation="0 0 0"
-        sound="src: #batida; autoplay: true; loop: true; volume: 0.7; positional: false"
         material="depthTest: true; depthWrite: true"
 
         gesture-handler="enabled: true; rotateOnPinch: true; scaleOnPinch: true"
@@ -84,27 +84,45 @@
       ></a-entity>
     </a-marker>
 
+    <!-- Entidade de áudio separada para melhor controle -->
+    <a-entity id="audio-player" sound="src: #batida; loop: true; volume: 0.7; positional: false"></a-entity>
+
   </a-scene>
 
-  <!-- Componente que adiciona drag com 1 dedo + tap com zoom pequeno -->
+  <!-- Componente que adiciona drag com 1 dedo + tap com zoom pequeno + controle de áudio -->
   <script>
     AFRAME.registerComponent('onefinger-control', {
       schema: {
         speed: { type: 'number', default: 0.9 },
-        zoomAmount: { type: 'number', default: 0.2 }  // Quantidade do zoom pequeno
+        zoomAmount: { type: 'number', default: 0.2 }
       },
 
       init: function () {
         const el = this.el;
         let lastX = 0;
         let isDragging = false;
-        let currentScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
+        let audioStarted = false;
         
-        // Armazena a escala base
-        this.baseScale = currentScale;
+        // Referência ao player de áudio
+        const audioEntity = document.querySelector('#audio-player');
 
-        // Drag com UM dedo (evento emitido pelo gesture-detector)
-        this.el.sceneEl.addEventListener('onefingermove', (e) => {
+        // Função para iniciar o áudio
+        const startAudio = () => {
+          if (!audioStarted && audioEntity) {
+            audioEntity.components.sound.playSound();
+            audioStarted = true;
+            console.log('Áudio iniciado');
+          }
+        };
+
+        // Tenta iniciar o áudio no primeiro toque
+        el.sceneEl.addEventListener('onefingerstart', (e) => {
+          lastX = e.detail.position.x;
+          startAudio(); // Tenta iniciar o áudio no primeiro toque
+        });
+
+        // Drag com UM dedo
+        el.sceneEl.addEventListener('onefingermove', (e) => {
           if (!el.object3D.visible) return;
 
           const deltaX = e.detail.position.x - lastX;
@@ -121,7 +139,7 @@
         });
 
         // Quando o dedo levanta
-        this.el.sceneEl.addEventListener('onefingerend', () => {
+        el.sceneEl.addEventListener('onefingerend', () => {
           if (isDragging) {
             isDragging = false;
             return;
@@ -133,28 +151,48 @@
           // Pega a escala atual
           const currentScale = el.getAttribute('scale') || {x:1.2, y:1.2, z:1.2};
           
-          // Aplica um zoom pequeno (aumenta 0.2 em cada eixo)
+          // Aplica zoom pequeno
           el.setAttribute('scale', {
             x: currentScale.x + this.data.zoomAmount,
             y: currentScale.y + this.data.zoomAmount,
             z: currentScale.z + this.data.zoomAmount
           });
 
-          // Volta ao tamanho normal após 280ms
+          // Volta ao tamanho normal
           setTimeout(() => {
-            el.setAttribute('scale', {
-              x: currentScale.x,
-              y: currentScale.y,
-              z: currentScale.z
-            });
+            el.setAttribute('scale', currentScale);
           }, 280);
         });
 
-        // Guarda posição inicial do toque
-        el.sceneEl.addEventListener('onefingerstart', (e) => {
-          lastX = e.detail.position.x;
+        // Tenta iniciar áudio também quando a cena carregar
+        el.sceneEl.addEventListener('loaded', () => {
+          // Pequeno delay para garantir que tudo carregou
+          setTimeout(() => {
+            // Tenta iniciar áudio (pode falhar se não houver interação)
+            if (audioEntity && !audioStarted) {
+              // Não chamamos startAudio aqui porque o navegador bloqueia
+              console.log('Aguardando interação para iniciar áudio');
+            }
+          }, 1000);
         });
       }
+    });
+
+    // Script adicional para garantir que o áudio inicie no primeiro toque
+    document.addEventListener('DOMContentLoaded', () => {
+      const initAudio = () => {
+        const audioEntity = document.querySelector('#audio-player');
+        if (audioEntity && audioEntity.components && audioEntity.components.sound) {
+          audioEntity.components.sound.playSound();
+        }
+        // Remove os listeners após a primeira interação
+        document.removeEventListener('touchstart', initAudio);
+        document.removeEventListener('click', initAudio);
+      };
+
+      // Adiciona listeners para qualquer toque/clique na página
+      document.addEventListener('touchstart', initAudio);
+      document.addEventListener('click', initAudio);
     });
   </script>
 
