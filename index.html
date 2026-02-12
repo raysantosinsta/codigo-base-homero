@@ -1,136 +1,99 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <title>AR Medical Dashboard - NestJS Integration</title>
-    <meta charset="utf-8" />
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+<head>
+  <title>AR Med - Monitoramento Realtime</title>
+  <meta charset="utf-8">
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+  
+  <style>
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+    #dashboard {
+      position: fixed; top: 20px; left: 20px;
+      background: rgba(0, 0, 0, 0.85); color: #00e5ff;
+      padding: 15px; border-radius: 10px; z-index: 1000;
+      border: 1px solid #00e5ff; min-width: 150px;
+    }
+    .label { font-size: 10px; color: #888; margin-bottom: 5px; }
+    .value { font-size: 24px; font-weight: bold; }
+    #status { font-size: 12px; margin-top: 5px; }
+  </style>
+</head>
 
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      }
+<body>
+  <div id="dashboard">
+    <div class="label">BATIMENTOS</div>
+    <div id="bpm-display" class="value">-- BPM</div>
+    <div id="status" style="color: #ff0000;">Conectando API...</div>
+  </div>
 
-      /* Painel de Dados 2D sobreposto */
-      #api-monitor {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        padding: 20px;
-        background: rgba(10, 25, 41, 0.85);
-        color: #00e5ff;
-        border-left: 5px solid #00e5ff;
-        border-radius: 4px;
-        z-index: 1000;
-        min-width: 200px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      }
-      .label {
-        font-size: 10px;
-        text-transform: uppercase;
-        color: #888;
-        letter-spacing: 1px;
-      }
-      .value {
-        font-size: 28px;
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
-      .status {
-        font-size: 14px;
-        font-weight: 500;
-      }
-    </style>
-  </head>
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-entity camera>
+      <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
+    </a-entity>
 
-  <body>
-    <div id="api-monitor">
-      <div class="label">Frequência Cardíaca</div>
-      <div id="bpm-val" class="value">-- BPM</div>
-      <div class="label">Análise do Sistema</div>
-      <div id="status-val" class="status">Conectando ao NestJS...</div>
-    </div>
-
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-      <a-entity camera>
-        <a-entity
-          cursor="rayOrigin: mouse"
-          raycaster="objects: .clickable"
-        ></a-entity>
+    <a-marker preset="hiro">
+      <a-entity 
+        id="coracao"
+        class="clickable"
+        gltf-model="url(realistic_human_heart.glb)"
+        scale="1 1 1" 
+        position="0 0.5 0"
+        material="emissiveIntensity: 0.6">
       </a-entity>
 
-      <a-marker preset="hiro">
-        <a-entity
-          id="heart-model"
-          class="clickable"
-          gltf-model="url(realistic_human_heart.glb)"
-          scale="1 1 1"
-          position="0 0.5 0"
-          material="emissiveIntensity: 0.7"
-          event-set__enter="_event: mouseenter; scale: 1.1 1.1 1.1"
-          event-set__leave="_event: mouseleave; scale: 1 1 1"
-        >
-        </a-entity>
+      <a-text id="ar-text" value="Lendo dados..." position="0 1.5 0" align="center" scale="0.7 0.7 0.7"></a-text>
+    </a-marker>
+  </a-scene>
 
-        <a-entity
-          id="ar-label"
-          position="0 1.6 0"
-          text="value: INICIALIZANDO; align: center; width: 4; color: #00e5ff; font: monoid"
-        >
-        </a-entity>
-      </a-marker>
-    </a-scene>
+  <script>
+    const heartEl = document.querySelector('#coracao');
+    const bpmDisplay = document.querySelector('#bpm-display');
+    const statusDisplay = document.querySelector('#status');
+    const arText = document.querySelector('#ar-text');
 
-    <script>
-      const model = document.querySelector("#heart-model");
-      const bpmText = document.querySelector("#bpm-val");
-      const statusText = document.querySelector("#status-val");
-      const arLabel = document.querySelector("#ar-label");
+    // Mude para o link atual do seu Localtunnel
+    const API_URL = "https://new-paths-begin.loca.lt/paciente/1";
 
-      // Endereço da sua API NestJS
-      const ENDPOINT = "https://every-sloths-talk.loca.lt/paciente/1";
+    async function getMedicalData() {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'GET',
+          headers: {
+            // Pula a tela de "Tunnel Password" do localtunnel
+            "bypass-tunnel-reminder": "true",
+            "Accept": "application/json"
+          }
+        });
 
-      async function fetchData() {
-        try {
-          const res = await fetch(ENDPOINT);
-          const data = await res.json();
+        if (!response.ok) throw new Error('Offline');
 
-          // 1. Atualiza Interface 2D
-          bpmText.innerText = `${data.bpm} BPM`;
-          statusText.innerText = data.status;
-          statusText.style.color = data.cor;
+        const data = await response.json();
 
-          // 2. Atualiza Modelo 3D (Cor e Escala baseada no batimento)
-          // Mudamos a cor para o que vem da API (vermelho se > 100)
-          model.setAttribute(
-            "material",
-            `color: ${data.cor}; emissive: ${data.cor}`,
-          );
+        // 1. Atualiza interface 2D
+        bpmDisplay.innerText = `${data.bpm} BPM`;
+        statusDisplay.innerText = data.status;
+        statusDisplay.style.color = data.cor;
 
-          // Simula uma pequena pulsação visual baseada no BPM
-          const pulseScale = 1 + data.bpm / 500;
-          model.setAttribute(
-            "scale",
-            `${pulseScale} ${pulseScale} ${pulseScale}`,
-          );
+        // 2. Atualiza Coração (Cor e Pulsação leve)
+        heartEl.setAttribute('material', `color: ${data.cor}; emissive: ${data.cor}`);
+        const pulse = 1 + (data.bpm / 500);
+        heartEl.setAttribute('scale', `${pulse} ${pulse} ${pulse}`);
 
-          // 3. Atualiza Texto flutuante no AR
-          arLabel.setAttribute(
-            "text",
-            `value: ${data.bpm} BPM\n${data.status}; color: ${data.cor}`,
-          );
-        } catch (err) {
-          statusText.innerText = "ERRO: API OFFLINE";
-          statusText.style.color = "#ff0000";
-          console.error("Erro ao consumir API NestJS:", err);
-        }
+        // 3. Atualiza Texto no AR
+        arText.setAttribute('value', `${data.bpm} BPM\n${data.status}`);
+        arText.setAttribute('color', data.cor);
+
+      } catch (error) {
+        console.error("Erro na API:", error);
+        statusDisplay.innerText = "API OFFLINE";
+        statusDisplay.style.color = "#ff0000";
       }
+    }
 
-      // Consulta a API a cada 2 segundos
-      setInterval(fetchData, 2000);
-    </script>
-  </body>
+    // Busca dados a cada 2 segundos
+    setInterval(getMedicalData, 2000);
+  </script>
+</body>
 </html>
