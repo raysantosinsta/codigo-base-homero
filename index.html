@@ -1,159 +1,193 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <title>Projeto AR - Coração Humano Interativo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <head>
+    <meta charset="UTF-8" />
+    <title>Projeto AR - Coração Humano Interativo</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
-  <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-    #ar-overlay {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      color: white;
-      background: rgba(0, 0, 0, 0.55);
-      padding: 12px 16px;
-      border-radius: 10px;
-      pointer-events: none;
-      font-size: 15px;
-      line-height: 1.5;
-      z-index: 10;
-      backdrop-filter: blur(4px);
-    }
-    #ar-overlay strong {
-      color: #ff4d4d;
-    }
-    #instructions {
-      font-size: 13px;
-      opacity: 0.9;
-      margin-top: 8px;
-    }
-  </style>
-</head>
-<body>
-
-  <div id="ar-overlay">
-    <div>BPM: <strong id="bpm">74</strong></div>
-    <div>SpO₂: <strong id="spo2">97</strong>%</div>
-    <div id="instructions">
-      • 2 dedos = Zoom<br />
-      • 1 dedo = Rotação<br />
-      • Toque = Pausar/Retomar som
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      #ar-overlay {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        color: white;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 12px 16px;
+        border-radius: 10px;
+        pointer-events: none;
+        font-size: 15px;
+        line-height: 1.5;
+        z-index: 10;
+        backdrop-filter: blur(4px);
+      }
+      #ar-overlay strong {
+        color: #ff4d4d;
+      }
+      #instructions {
+        font-size: 13px;
+        opacity: 0.9;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ar-overlay">
+      <div>BPM: <strong id="bpm">74</strong></div>
+      <div>SpO₂: <strong id="spo2">97</strong>%</div>
+      <div id="instructions">
+        • 2 dedos = Zoom<br />
+        • 1 dedo = Rotação<br />
+        • Toque = Pausar/Retomar som
+      </div>
     </div>
-  </div>
 
-  <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-    gesture-detector
-    renderer="antialias: true; logarithmicDepthBuffer: true;"
-  >
-    <a-assets>
-      <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
-    </a-assets>
-
-    <a-marker
-      preset="hiro"
-      raycaster="objects: .clickable"
-      emitevents="true"
-      cursor="fuse: false; rayOrigin: mouse;"
+    <a-scene
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+      gesture-detector
+      renderer="antialias: true; logarithmicDepthBuffer: true;"
     >
-      <a-entity
-        id="heart-container"
-        class="clickable"
-        gesture-handler
-        position="0 0.3 0"
-        scale="1.1 1.1 1.1"
+      <a-assets>
+        <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <a-marker
+        preset="hiro"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
       >
         <a-entity
-          id="heart-model"
-          gltf-model="url(realistic_human_heart.glb)"
-          scale="1 1 1"
-          sound="src: #batida; autoplay: true; loop: true; volume: 0.7; positional: false"
-          animation__pulse="property: scale; 
+          id="heart-container"
+          class="clickable"
+          gesture-handler
+          position="0 0.3 0"
+          scale="1.1 1.1 1.1"
+        >
+          <a-entity
+            id="heart-model"
+            gltf-model="url(realistic_human_heart.glb)"
+            scale="1 1 1"
+            sound="src: #batida; autoplay: true; loop: true; volume: 0.7; positional: false"
+            animation__pulse="property: scale; 
                             from: 0.92 0.92 0.92; 
                             to: 1.08 1.08 1.08; 
                             dir: alternate; 
                             dur: 800; 
                             easing: easeInOutSine; 
                             loop: true"
-        ></a-entity>
-      </a-entity>
-    </a-marker>
+          ></a-entity>
+        </a-entity>
+      </a-marker>
 
-    <a-entity camera></a-entity>
-  </a-scene>
+      <a-entity camera></a-entity>
+    </a-scene>
 
-  <script>
-    // =============================================
-    // Simulador realista de sinais vitais
-    // =============================================
-    const bpmElement   = document.getElementById("bpm");
-    const spo2Element  = document.getElementById("spo2");
-    const heartModel   = document.getElementById("heart-model");
-    const pulseAnim    = heartModel.getAttribute('animation__pulse') || {};
-    const soundElement = document.querySelector('[sound]');
+    <script>
+      /**
+       * Simulador realista de sinais vitais com animação e som sincronizado
+       * em realidade aumentada usando A-Frame + AR.js
+       */
 
-    let currentBPM = 74;
-    let currentSpO2 = 97.0;
-    let isSoundPlaying = true;
+      // Elementos DOM e referências da cena
+      const bpmElement   = document.getElementById("bpm");
+      const spo2Element  = document.getElementById("spo2");
+      const heartModel   = document.getElementById("heart-model");
+      const pulseAnim    = heartModel.getAttribute("animation__pulse") || {};
+      const soundElement = document.querySelector("[sound]");
 
-    function updateVitals() {
-      // Variação natural (HRV simulada + ruído leve)
-      currentBPM += (Math.random() * 6 - 3);          // ±3 bpm
-      currentBPM = Math.max(62, Math.min(88, Math.round(currentBPM)));
+      // Estado inicial dos sinais vitais
+      let currentBPM    = 74;
+      let currentSpO2   = 97.0;
+      let isSoundPlaying = true;
 
-      // SpO₂ varia pouco em repouso
-      currentSpO2 += (Math.random() * 0.9 - 0.45);
-      currentSpO2 = Math.max(95, Math.min(99, Math.round(currentSpO2 * 10) / 10));
+      /**
+       * Atualiza os sinais vitais (BPM e SpO₂), animação do coração e volume do som
+       * Simula variação natural (HRV + ruído) e ajusta a duração da animação proporcionalmente ao BPM
+       */
+      function updateVitals() {
+        // Variação natural do BPM (simulação de variabilidade da frequência cardíaca)
+        currentBPM += Math.random() * 6 - 3;          // ±3 bpm
+        currentBPM = Math.max(62, Math.min(88, Math.round(currentBPM)));
 
-      // Atualiza display
-      bpmElement.textContent = currentBPM;
-      spo2Element.textContent = currentSpO2;
+        // Variação leve da saturação de oxigênio (SpO₂)
+        currentSpO2 += Math.random() * 0.9 - 0.45;
+        currentSpO2 = Math.max(95, Math.min(99, Math.round(currentSpO2 * 10) / 10));
 
-      // Converte BPM → duração do ciclo (ms por batimento)
-      const cycleMs = 60000 / currentBPM;
-      const animDuration = cycleMs * 0.84;  // sístole + diástole um pouco mais curta
+        // Atualiza valores exibidos no overlay
+        bpmElement.textContent = currentBPM;
+        spo2Element.textContent = currentSpO2;
 
-      // Atualiza animação
-      heartModel.setAttribute('animation__pulse', {
-        ...pulseAnim,
-        dur: animDuration
-      });
+        // Calcula duração de um ciclo cardíaco em milissegundos
+        const cycleMs = 60000 / currentBPM;
+        const animDuration = cycleMs * 0.84; // sístole + diástole um pouco mais curta que o ciclo completo
 
-      // Ajusta volume do som proporcional ao BPM (mais intenso = mais alto)
-      // const volume = 0.5 + (currentBPM - 60) / 140;
-      if (soundElement) {
-        soundElement.setAttribute('sound', 'volume', 7);
+        // Atualiza a duração da animação de pulsação
+        heartModel.setAttribute("animation__pulse", {
+          ...pulseAnim,
+          dur: animDuration,
+        });
+
+        // Define volume fixo alto (valor 7 foi colocado anteriormente - note que no A-Frame o limite prático é ~1.0)
+        // Sugestão: use valores entre 0.0 e 1.0, ou edite o arquivo de áudio para maior ganho
+        const volume = 1.0; // valor máximo recomendado no componente sound do A-Frame
+        if (soundElement) {
+          soundElement.setAttribute("sound", "volume", volume);
+        }
       }
-    }
 
-    // Atualiza a cada 4–7 segundos (simulando medição real)
-    setInterval(updateVitals, 4000 + Math.random() * 3000);
+      /**
+       * Inicializa a simulação de sinais vitais
+       * - Executa a primeira atualização imediatamente
+       * - Agenda atualizações periódicas com intervalo variável (4–7 segundos)
+       */
+      function initVitalsSimulation() {
+        updateVitals(); // Primeira atualização imediata
 
-    // Primeira atualização imediata
-    updateVitals();
+        // Intervalo aleatório entre 4 e 7 segundos para simular medição real
+        setInterval(() => {
+          updateVitals();
+        }, 4000 + Math.random() * 3000);
+      }
 
-    // Clique no marcador → toggle som (opcional)
-    document.querySelector('a-marker').addEventListener('click', () => {
-      if (soundElement) {
+      // Inicia a simulação
+      initVitalsSimulation();
+
+      /**
+       * Alterna (toggle) o estado de reprodução do som cardíaco ao clicar no marcador
+       * @listens click no elemento <a-marker>
+       */
+      document.querySelector("a-marker").addEventListener("click", () => {
+        if (!soundElement) return;
+
         isSoundPlaying = !isSoundPlaying;
-        soundElement.setAttribute('sound', 'autoplay', isSoundPlaying);
-        soundElement.components.sound.pause(); // força reavaliação
-        if (isSoundPlaying) soundElement.components.sound.play();
-      }
-    });
-  </script>
 
-</body>
+        // Atualiza propriedade autoplay
+        soundElement.setAttribute("sound", "autoplay", isSoundPlaying);
+
+        // Força pausa/toca para garantir que o estado seja aplicado
+        const soundComp = soundElement.components.sound;
+        if (soundComp) {
+          if (isSoundPlaying) {
+            soundComp.play();
+          } else {
+            soundComp.pause();
+          }
+        }
+      });
+    </script>
+  </body>
 </html>
