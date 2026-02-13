@@ -41,12 +41,31 @@
         opacity: 0.9;
         margin-top: 8px;
       }
+      /* Estilos para alerta de BPM elevado */
+      .alert-high-bpm {
+        color: #ff4d4d !important;
+        font-weight: bold;
+        font-size: 1.3em;
+      }
+      .alert-message {
+        color: #ffeb3b;
+        font-weight: bold;
+        margin-top: 6px;
+        background: rgba(255, 0, 0, 0.3);
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: none;
+      }
+      .alert-message.show {
+        display: block;
+      }
     </style>
   </head>
   <body>
     <div id="ar-overlay">
       <div>BPM: <strong id="bpm">74</strong></div>
       <div>SpO₂: <strong id="spo2">97</strong>%</div>
+      <div id="alertHighBpm" class="alert-message">Atenção: BPM elevado!</div>
       <div id="instructions">
         • 2 dedos = Zoom<br />
         • 1 dedo = Rotação<br />
@@ -103,25 +122,31 @@
        */
 
       // Elementos DOM e referências da cena
-      const bpmElement   = document.getElementById("bpm");
-      const spo2Element  = document.getElementById("spo2");
-      const heartModel   = document.getElementById("heart-model");
-      const pulseAnim    = heartModel.getAttribute("animation__pulse") || {};
-      const soundElement = document.querySelector("[sound]");
+      const bpmElement    = document.getElementById("bpm");
+      const spo2Element   = document.getElementById("spo2");
+      const alertElement  = document.getElementById("alertHighBpm");
+      const heartModel    = document.getElementById("heart-model");
+      const pulseAnim     = heartModel.getAttribute("animation__pulse") || {};
+      const soundElement  = document.querySelector("[sound]");
 
       // Estado inicial dos sinais vitais
-      let currentBPM    = 74;
-      let currentSpO2   = 97.0;
+      let currentBPM     = 74;
+      let currentSpO2    = 97.0;
       let isSoundPlaying = true;
+
+      // Limites de referência (adulto em repouso)
+      const LIMITE_BPM_ALTO = 100;  // Acima disso = taquicardia (alerta)
+      const LIMITE_BPM_BAIXO = 60;  // Abaixo disso = bradicardia (opcional, sem alerta por enquanto)
 
       /**
        * Atualiza os sinais vitais (BPM e SpO₂), animação do coração e volume do som
        * Simula variação natural (HRV + ruído) e ajusta a duração da animação proporcionalmente ao BPM
+       * Mostra alerta visual se BPM ultrapassar o limite padrão
        */
       function updateVitals() {
         // Variação natural do BPM (simulação de variabilidade da frequência cardíaca)
         currentBPM += Math.random() * 6 - 3;          // ±3 bpm
-        currentBPM = Math.max(62, Math.min(88, Math.round(currentBPM)));
+        currentBPM = Math.max(62, Math.min(120, Math.round(currentBPM))); // ampliado um pouco o max para testar alerta
 
         // Variação leve da saturação de oxigênio (SpO₂)
         currentSpO2 += Math.random() * 0.9 - 0.45;
@@ -131,9 +156,18 @@
         bpmElement.textContent = currentBPM;
         spo2Element.textContent = currentSpO2;
 
+        // Alerta visual se BPM ultrapassar o limite padrão
+        if (currentBPM > LIMITE_BPM_ALTO) {
+          bpmElement.classList.add("alert-high-bpm");
+          alertElement.classList.add("show");
+        } else {
+          bpmElement.classList.remove("alert-high-bpm");
+          alertElement.classList.remove("show");
+        }
+
         // Calcula duração de um ciclo cardíaco em milissegundos
         const cycleMs = 60000 / currentBPM;
-        const animDuration = cycleMs * 0.84; // sístole + diástole um pouco mais curta que o ciclo completo
+        const animDuration = cycleMs * 0.84; // sístole + diástole um pouco mais curta
 
         // Atualiza a duração da animação de pulsação
         heartModel.setAttribute("animation__pulse", {
@@ -141,9 +175,8 @@
           dur: animDuration,
         });
 
-        // Define volume fixo alto (valor 7 foi colocado anteriormente - note que no A-Frame o limite prático é ~1.0)
-        // Sugestão: use valores entre 0.0 e 1.0, ou edite o arquivo de áudio para maior ganho
-        const volume = 8; // valor máximo recomendado no componente sound do A-Frame
+        // Volume do som (máximo recomendado no A-Frame é 1.0)
+        const volume = 1.0; // fixe em máximo - edite o mp3 se precisar mais alto
         if (soundElement) {
           soundElement.setAttribute("sound", "volume", volume);
         }
