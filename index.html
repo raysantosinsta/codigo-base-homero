@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>AR - Sistema Médico Interativo</title>
+<title>AR - Sistema Médico</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
@@ -11,22 +11,20 @@
 <style>
 body {
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  overflow: hidden;
+  font-family: Arial;
 }
 
-/* ===== TELA DE SELEÇÃO ===== */
+/* Tela inicial */
 #patient-select-screen {
   position: fixed;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #111, #1f1f1f);
+  background: linear-gradient(135deg,#111,#222);
   color: white;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 }
 
 select, button {
@@ -44,11 +42,9 @@ button {
   cursor: pointer;
 }
 
-/* ===== MODAL PACIENTE ===== */
+/* Modal paciente */
 #patient-page {
   position: fixed;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.85);
@@ -62,24 +58,16 @@ button {
   background: white;
   color: black;
   padding: 25px;
-  border-radius: 15px;
+  border-radius: 12px;
   width: 90%;
   max-width: 400px;
-}
-
-.patient-card h2 {
-  margin-top: 0;
-}
-
-.hidden {
-  display: none;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ===== TELA DE SELEÇÃO ===== -->
+<!-- Tela de Seleção -->
 <div id="patient-select-screen">
   <h1>Selecionar Paciente</h1>
 
@@ -90,7 +78,7 @@ button {
   <button id="startAR">Iniciar AR</button>
 </div>
 
-<!-- ===== MODAL PACIENTE ===== -->
+<!-- Modal -->
 <div id="patient-page">
   <div class="patient-card">
     <h2>Ficha do Paciente</h2>
@@ -102,32 +90,9 @@ button {
   </div>
 </div>
 
-<!-- ===== CENA AR (INICIALMENTE OCULTA) ===== -->
-<a-scene
-  id="arScene"
-  embedded
-  class="hidden"
-  arjs="sourceType: webcam; debugUIEnabled: false;"
->
-  <a-marker preset="hiro" cursor="rayOrigin: mouse;">
-    <a-entity id="heart-container" class="clickable" position="0 0.3 0">
-      <a-entity
-        id="heart-model"
-        gltf-model="url(realistic_human_heart.glb)"
-        scale="1 1 1"
-        animation="property: scale; from: 0.95 0.95 0.95; to: 1.05 1.05 1.05; dir: alternate; dur: 800; loop: true"
-      ></a-entity>
-    </a-entity>
-  </a-marker>
-
-  <a-entity camera></a-entity>
-</a-scene>
-
 <script>
 
-/* ==============================
-   BASE DE DADOS FAKE
-================================ */
+/* ===== Base fake ===== */
 const patients = [
   { id: 1, name: "João Silva", age: 54, bpm: 88, spo2: 97 },
   { id: 2, name: "Maria Souza", age: 62, bpm: 102, spo2: 95 },
@@ -136,21 +101,14 @@ const patients = [
 
 let selectedPatient = null;
 
-/* ==============================
-   ELEMENTOS
-================================ */
+/* ===== Elementos ===== */
 const select = document.getElementById("patientSelect");
 const startBtn = document.getElementById("startAR");
 const selectScreen = document.getElementById("patient-select-screen");
-const arScene = document.getElementById("arScene");
-const heartModel = document.getElementById("heart-model");
-
 const patientPage = document.getElementById("patient-page");
 const closeBtn = document.getElementById("closePatient");
 
-/* ==============================
-   POPULAR SELECT
-================================ */
+/* Popular select */
 patients.forEach(p => {
   const option = document.createElement("option");
   option.value = p.id;
@@ -158,9 +116,7 @@ patients.forEach(p => {
   select.appendChild(option);
 });
 
-/* ==============================
-   INICIAR AR
-================================ */
+/* Iniciar AR */
 startBtn.addEventListener("click", () => {
   const id = parseInt(select.value);
 
@@ -171,34 +127,55 @@ startBtn.addEventListener("click", () => {
 
   selectedPatient = patients.find(p => p.id === id);
 
-  selectScreen.style.display = "none";
-  arScene.classList.remove("hidden");
+  selectScreen.remove();
+
+  createARScene();
 });
 
-/* ==============================
-   CLICK NO CORAÇÃO
-================================ */
-heartModel.addEventListener("click", () => {
+/* ===== Criar cena dinamicamente ===== */
+function createARScene() {
 
-  if (!selectedPatient) return;
+  const scene = document.createElement("a-scene");
+  scene.setAttribute("embedded", "");
+  scene.setAttribute("arjs", "sourceType: webcam; debugUIEnabled: false;");
 
-  document.getElementById("modal-name").textContent = selectedPatient.name;
-  document.getElementById("modal-age").textContent = selectedPatient.age;
-  document.getElementById("modal-bpm").textContent = selectedPatient.bpm;
-  document.getElementById("modal-spo2").textContent = selectedPatient.spo2;
+  scene.innerHTML = `
+    <a-marker preset="hiro" cursor="rayOrigin: mouse;">
+      <a-entity position="0 0.3 0">
+        <a-entity
+          id="heart-model"
+          gltf-model="url(realistic_human_heart.glb)"
+          scale="1 1 1"
+          animation="property: scale; from: 0.95 0.95 0.95; to: 1.05 1.05 1.05; dir: alternate; dur: 800; loop: true"
+        ></a-entity>
+      </a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  `;
 
-  patientPage.style.display = "flex";
+  document.body.appendChild(scene);
 
-  heartModel.pause();
-});
+  /* Esperar carregar */
+  scene.addEventListener("loaded", () => {
+    const heartModel = document.getElementById("heart-model");
 
-/* ==============================
-   FECHAR MODAL
-================================ */
-closeBtn.addEventListener("click", () => {
-  patientPage.style.display = "none";
-  heartModel.play();
-});
+    heartModel.addEventListener("click", () => {
+      document.getElementById("modal-name").textContent = selectedPatient.name;
+      document.getElementById("modal-age").textContent = selectedPatient.age;
+      document.getElementById("modal-bpm").textContent = selectedPatient.bpm;
+      document.getElementById("modal-spo2").textContent = selectedPatient.spo2;
+
+      patientPage.style.display = "flex";
+      heartModel.pause();
+    });
+
+    closeBtn.addEventListener("click", () => {
+      patientPage.style.display = "none";
+      heartModel.play();
+    });
+
+  });
+}
 
 </script>
 </body>
