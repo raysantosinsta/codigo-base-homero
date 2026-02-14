@@ -1,6 +1,7 @@
 <!doctype html>
-<html>
+<html lang="pt-BR">
   <head>
+    <meta charset="UTF-8" />
     <title>Projeto AR - Coração Humano Interativo</title>
     <meta
       name="viewport"
@@ -16,32 +17,64 @@
       body {
         margin: 0;
         overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
       }
       #ar-overlay {
         position: absolute;
-        top: 10px;
-        left: 10px;
+        top: 12px;
+        left: 12px;
         color: white;
-        font-family: Arial, sans-serif;
-        background: rgba(0, 0, 0, 0.4);
-        padding: 8px 12px;
-        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 12px 16px;
+        border-radius: 10px;
         pointer-events: none;
-        font-size: 14px;
+        font-size: 15px;
+        line-height: 1.5;
         z-index: 10;
+        backdrop-filter: blur(4px);
+      }
+      #ar-overlay strong {
+        color: #ff4d4d;
+      }
+      #instructions {
+        font-size: 13px;
+        opacity: 0.9;
+        margin-top: 8px;
+      }
+      /* Estilos para alerta de BPM elevado */
+      .alert-high-bpm {
+        color: #ff4d4d !important;
+        font-weight: bold;
+        font-size: 1.3em;
+      }
+      .alert-message {
+        color: #ffeb3b;
+        font-weight: bold;
+        margin-top: 6px;
+        background: rgba(255, 0, 0, 0.3);
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: none;
+      }
+      .alert-message.show {
+        display: block;
       }
     </style>
   </head>
   <body>
     <div id="ar-overlay">
-      • Use 2 dedos para Zoom<br />
-      • Use 1 dedo para Rotação<br />
-      • O coração pulsa e audio toca
+      <div>BPM: <strong id="bpm">74</strong></div>
+      <div>SpO₂: <strong id="spo2">97</strong>%</div>
+      <div id="alertHighBpm" class="alert-message">Atenção: BPM elevado!</div>
+      <div id="instructions">
+        • 2 dedos = Zoom<br />
+        • 1 dedo = Rotação<br />
+      </div>
     </div>
 
     <a-scene
       embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
       gesture-detector
       renderer="antialias: true; logarithmicDepthBuffer: true;"
     >
@@ -60,25 +93,133 @@
           class="clickable"
           gesture-handler
           position="0 0.3 0"
-          scale="1 1 1"
+          scale="1.1 1.1 1.1"
         >
           <a-entity
+            id="heart-model"
             gltf-model="url(realistic_human_heart.glb)"
             scale="1 1 1"
-            sound="src: #batida; autoplay: true; loop: true; volume: 10; positional: false"
-            animation="property: scale; 
-                       from: 0.8 0.8 0.8;
-                       to: 1.1 1.1 1.1; 
-                       dir: alternate; 
-                       dur: 600; 
-                       easing: easeInOutQuad; 
-                       loop: true"
-          >
-          </a-entity>
+            sound="src: #batida; autoplay: true; loop: true; volume: 0.7; positional: false"
+            animation__pulse="property: scale; 
+                            from: 0.92 0.92 0.92; 
+                            to: 1.08 1.08 1.08; 
+                            dir: alternate; 
+                            dur: 800; 
+                            easing: easeInOutSine; 
+                            loop: true"
+          ></a-entity>
         </a-entity>
       </a-marker>
 
       <a-entity camera></a-entity>
     </a-scene>
+
+    <script>
+      /**
+       * Simulador realista de sinais vitais com animação e som sincronizado
+       * em realidade aumentada usando A-Frame + AR.js
+       */
+
+      // Elementos DOM e referências da cena
+      const bpmElement    = document.getElementById("bpm");
+      const spo2Element   = document.getElementById("spo2");
+      const alertElement  = document.getElementById("alertHighBpm");
+      const heartModel    = document.getElementById("heart-model");
+      const pulseAnim     = heartModel.getAttribute("animation__pulse") || {};
+      const soundElement  = document.querySelector("[sound]");
+
+      // Estado inicial dos sinais vitais
+      let currentBPM     = 74;
+      let currentSpO2    = 97.0;
+      let isSoundPlaying = true;
+
+      // Limites de referência (adulto em repouso)
+      const LIMITE_BPM_ALTO = 100;  // Acima disso = taquicardia (alerta)
+      const LIMITE_BPM_BAIXO = 60;  // Abaixo disso = bradicardia (opcional, sem alerta por enquanto)
+
+      /**
+       * Atualiza os sinais vitais (BPM e SpO₂), animação do coração e volume do som
+       * Simula variação natural (HRV + ruído) e ajusta a duração da animação proporcionalmente ao BPM
+       * Mostra alerta visual se BPM ultrapassar o limite padrão
+       */
+      function updateVitals() {
+        // Variação natural do BPM (simulação de variabilidade da frequência cardíaca)
+        currentBPM += Math.random() * 6 - 3;          // ±3 bpm
+        currentBPM = Math.max(62, Math.min(120, Math.round(currentBPM))); // ampliado um pouco o max para testar alerta
+
+        // Variação leve da saturação de oxigênio (SpO₂)
+        currentSpO2 += Math.random() * 0.9 - 0.45;
+        currentSpO2 = Math.max(95, Math.min(99, Math.round(currentSpO2 * 10) / 10));
+
+        // Atualiza valores exibidos no overlay
+        bpmElement.textContent = currentBPM;
+        spo2Element.textContent = currentSpO2;
+
+        // Alerta visual se BPM ultrapassar o limite padrão
+        if (currentBPM > LIMITE_BPM_ALTO) {
+          bpmElement.classList.add("alert-high-bpm");
+          alertElement.classList.add("show");
+        } else {
+          bpmElement.classList.remove("alert-high-bpm");
+          alertElement.classList.remove("show");
+        }
+
+        // Calcula duração de um ciclo cardíaco em milissegundos
+        const cycleMs = 60000 / currentBPM;
+        const animDuration = cycleMs * 0.84; // sístole + diástole um pouco mais curta
+
+        // Atualiza a duração da animação de pulsação
+        heartModel.setAttribute("animation__pulse", {
+          ...pulseAnim,
+          dur: animDuration,
+        });
+
+        // Volume do som (máximo recomendado no A-Frame é 1.0)
+        const volume = 7; // fixe em máximo - edite o mp3 se precisar mais alto
+        if (soundElement) {
+          soundElement.setAttribute("sound", "volume", volume);
+        }
+      }
+
+      /**
+       * Inicializa a simulação de sinais vitais
+       * - Executa a primeira atualização imediatamente
+       * - Agenda atualizações periódicas com intervalo variável (4–7 segundos)
+       */
+      function initVitalsSimulation() {
+        updateVitals(); // Primeira atualização imediata
+
+        // Intervalo aleatório entre 4 e 7 segundos para simular medição real
+        setInterval(() => {
+          updateVitals();
+        }, 4000 + Math.random() * 3000);
+      }
+
+      // Inicia a simulação
+      initVitalsSimulation();
+
+      /**
+       * Alterna (toggle) o estado de reprodução do som cardíaco ao clicar no marcador
+       * @listens click no elemento <a-marker>
+       */
+      document.querySelector("a-marker").addEventListener("click", () => {
+        if (!soundElement) return;
+
+        isSoundPlaying = !isSoundPlaying;
+
+        // Atualiza propriedade autoplay
+        soundElement.setAttribute("sound", "autoplay", isSoundPlaying);
+
+        // Força pausa/toca para garantir que o estado seja aplicado
+        const soundComp = soundElement.components.sound;
+        if (soundComp) {
+          if (isSoundPlaying) {
+            soundComp.play();
+          } else {
+            soundComp.pause();
+          }
+        }
+      });
+    </script>
   </body>
 </html>

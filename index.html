@@ -1,225 +1,205 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Projeto AR - Coração Humano Interativo</title>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+<head>
+<meta charset="UTF-8" />
+<title>AR - Sistema Médico Interativo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
-    <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
 
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: Arial, Helvetica, sans-serif;
-      }
-      #ar-overlay {
-        position: absolute;
-        top: 12px;
-        left: 12px;
-        color: white;
-        background: rgba(0, 0, 0, 0.55);
-        padding: 12px 16px;
-        border-radius: 10px;
-        pointer-events: none;
-        font-size: 15px;
-        line-height: 1.5;
-        z-index: 10;
-        backdrop-filter: blur(4px);
-      }
-      #ar-overlay strong {
-        color: #ff4d4d;
-      }
-      #instructions {
-        font-size: 13px;
-        opacity: 0.9;
-        margin-top: 8px;
-      }
-      /* Estilos para alerta de BPM elevado */
-      .alert-high-bpm {
-        color: #ff4d4d !important;
-        font-weight: bold;
-        font-size: 1.3em;
-      }
-      .alert-message {
-        color: #ffeb3b;
-        font-weight: bold;
-        margin-top: 6px;
-        background: rgba(255, 0, 0, 0.3);
-        padding: 4px 8px;
-        border-radius: 6px;
-        display: none;
-      }
-      .alert-message.show {
-        display: block;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="ar-overlay">
-      <div>BPM: <strong id="bpm">74</strong></div>
-      <div>SpO₂: <strong id="spo2">97</strong>%</div>
-      <div id="alertHighBpm" class="alert-message">Atenção: BPM elevado!</div>
-      <div id="instructions">
-        • 2 dedos = Zoom<br />
-        • 1 dedo = Rotação<br />
-      </div>
-    </div>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
 
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-      gesture-detector
-      renderer="antialias: true; logarithmicDepthBuffer: true;"
-    >
-      <a-assets>
-        <audio id="batida" src="coracao-som.mp3" preload="auto"></audio>
-      </a-assets>
+/* ===== TELA DE SELEÇÃO ===== */
+#patient-select-screen {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #111, #1f1f1f);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
 
-      <a-marker
-        preset="hiro"
-        raycaster="objects: .clickable"
-        emitevents="true"
-        cursor="fuse: false; rayOrigin: mouse;"
-      >
-        <a-entity
-          id="heart-container"
-          class="clickable"
-          gesture-handler
-          position="0 0.3 0"
-          scale="1.1 1.1 1.1"
-        >
-          <a-entity
-            id="heart-model"
-            gltf-model="url(realistic_human_heart.glb)"
-            scale="1 1 1"
-            sound="src: #batida; autoplay: true; loop: true; volume: 0.7; positional: false"
-            animation__pulse="property: scale; 
-                            from: 0.92 0.92 0.92; 
-                            to: 1.08 1.08 1.08; 
-                            dir: alternate; 
-                            dur: 800; 
-                            easing: easeInOutSine; 
-                            loop: true"
-          ></a-entity>
-        </a-entity>
-      </a-marker>
+select, button {
+  padding: 12px;
+  margin-top: 15px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+}
 
-      <a-entity camera></a-entity>
-    </a-scene>
+button {
+  background: #ff4d4d;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    <script>
-      /**
-       * Simulador realista de sinais vitais com animação e som sincronizado
-       * em realidade aumentada usando A-Frame + AR.js
-       */
+/* ===== MODAL PACIENTE ===== */
+#patient-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
 
-      // Elementos DOM e referências da cena
-      const bpmElement    = document.getElementById("bpm");
-      const spo2Element   = document.getElementById("spo2");
-      const alertElement  = document.getElementById("alertHighBpm");
-      const heartModel    = document.getElementById("heart-model");
-      const pulseAnim     = heartModel.getAttribute("animation__pulse") || {};
-      const soundElement  = document.querySelector("[sound]");
+.patient-card {
+  background: white;
+  color: black;
+  padding: 25px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 400px;
+}
 
-      // Estado inicial dos sinais vitais
-      let currentBPM     = 74;
-      let currentSpO2    = 97.0;
-      let isSoundPlaying = true;
+.patient-card h2 {
+  margin-top: 0;
+}
 
-      // Limites de referência (adulto em repouso)
-      const LIMITE_BPM_ALTO = 100;  // Acima disso = taquicardia (alerta)
-      const LIMITE_BPM_BAIXO = 60;  // Abaixo disso = bradicardia (opcional, sem alerta por enquanto)
+.hidden {
+  display: none;
+}
+</style>
+</head>
 
-      /**
-       * Atualiza os sinais vitais (BPM e SpO₂), animação do coração e volume do som
-       * Simula variação natural (HRV + ruído) e ajusta a duração da animação proporcionalmente ao BPM
-       * Mostra alerta visual se BPM ultrapassar o limite padrão
-       */
-      function updateVitals() {
-        // Variação natural do BPM (simulação de variabilidade da frequência cardíaca)
-        currentBPM += Math.random() * 6 - 3;          // ±3 bpm
-        currentBPM = Math.max(62, Math.min(120, Math.round(currentBPM))); // ampliado um pouco o max para testar alerta
+<body>
 
-        // Variação leve da saturação de oxigênio (SpO₂)
-        currentSpO2 += Math.random() * 0.9 - 0.45;
-        currentSpO2 = Math.max(95, Math.min(99, Math.round(currentSpO2 * 10) / 10));
+<!-- ===== TELA DE SELEÇÃO ===== -->
+<div id="patient-select-screen">
+  <h1>Selecionar Paciente</h1>
 
-        // Atualiza valores exibidos no overlay
-        bpmElement.textContent = currentBPM;
-        spo2Element.textContent = currentSpO2;
+  <select id="patientSelect">
+    <option value="">Escolha um paciente</option>
+  </select>
 
-        // Alerta visual se BPM ultrapassar o limite padrão
-        if (currentBPM > LIMITE_BPM_ALTO) {
-          bpmElement.classList.add("alert-high-bpm");
-          alertElement.classList.add("show");
-        } else {
-          bpmElement.classList.remove("alert-high-bpm");
-          alertElement.classList.remove("show");
-        }
+  <button id="startAR">Iniciar AR</button>
+</div>
 
-        // Calcula duração de um ciclo cardíaco em milissegundos
-        const cycleMs = 60000 / currentBPM;
-        const animDuration = cycleMs * 0.84; // sístole + diástole um pouco mais curta
+<!-- ===== MODAL PACIENTE ===== -->
+<div id="patient-page">
+  <div class="patient-card">
+    <h2>Ficha do Paciente</h2>
+    <p><strong>Nome:</strong> <span id="modal-name"></span></p>
+    <p><strong>Idade:</strong> <span id="modal-age"></span></p>
+    <p><strong>BPM:</strong> <span id="modal-bpm"></span></p>
+    <p><strong>SpO₂:</strong> <span id="modal-spo2"></span>%</p>
+    <button id="closePatient">Fechar</button>
+  </div>
+</div>
 
-        // Atualiza a duração da animação de pulsação
-        heartModel.setAttribute("animation__pulse", {
-          ...pulseAnim,
-          dur: animDuration,
-        });
+<!-- ===== CENA AR (INICIALMENTE OCULTA) ===== -->
+<a-scene
+  id="arScene"
+  embedded
+  class="hidden"
+  arjs="sourceType: webcam; debugUIEnabled: false;"
+>
+  <a-marker preset="hiro" cursor="rayOrigin: mouse;">
+    <a-entity id="heart-container" class="clickable" position="0 0.3 0">
+      <a-entity
+        id="heart-model"
+        gltf-model="url(realistic_human_heart.glb)"
+        scale="1 1 1"
+        animation="property: scale; from: 0.95 0.95 0.95; to: 1.05 1.05 1.05; dir: alternate; dur: 800; loop: true"
+      ></a-entity>
+    </a-entity>
+  </a-marker>
 
-        // Volume do som (máximo recomendado no A-Frame é 1.0)
-        const volume = 7; // fixe em máximo - edite o mp3 se precisar mais alto
-        if (soundElement) {
-          soundElement.setAttribute("sound", "volume", volume);
-        }
-      }
+  <a-entity camera></a-entity>
+</a-scene>
 
-      /**
-       * Inicializa a simulação de sinais vitais
-       * - Executa a primeira atualização imediatamente
-       * - Agenda atualizações periódicas com intervalo variável (4–7 segundos)
-       */
-      function initVitalsSimulation() {
-        updateVitals(); // Primeira atualização imediata
+<script>
 
-        // Intervalo aleatório entre 4 e 7 segundos para simular medição real
-        setInterval(() => {
-          updateVitals();
-        }, 4000 + Math.random() * 3000);
-      }
+/* ==============================
+   BASE DE DADOS FAKE
+================================ */
+const patients = [
+  { id: 1, name: "João Silva", age: 54, bpm: 88, spo2: 97 },
+  { id: 2, name: "Maria Souza", age: 62, bpm: 102, spo2: 95 },
+  { id: 3, name: "Carlos Mendes", age: 45, bpm: 76, spo2: 98 }
+];
 
-      // Inicia a simulação
-      initVitalsSimulation();
+let selectedPatient = null;
 
-      /**
-       * Alterna (toggle) o estado de reprodução do som cardíaco ao clicar no marcador
-       * @listens click no elemento <a-marker>
-       */
-      document.querySelector("a-marker").addEventListener("click", () => {
-        if (!soundElement) return;
+/* ==============================
+   ELEMENTOS
+================================ */
+const select = document.getElementById("patientSelect");
+const startBtn = document.getElementById("startAR");
+const selectScreen = document.getElementById("patient-select-screen");
+const arScene = document.getElementById("arScene");
+const heartModel = document.getElementById("heart-model");
 
-        isSoundPlaying = !isSoundPlaying;
+const patientPage = document.getElementById("patient-page");
+const closeBtn = document.getElementById("closePatient");
 
-        // Atualiza propriedade autoplay
-        soundElement.setAttribute("sound", "autoplay", isSoundPlaying);
+/* ==============================
+   POPULAR SELECT
+================================ */
+patients.forEach(p => {
+  const option = document.createElement("option");
+  option.value = p.id;
+  option.textContent = p.name;
+  select.appendChild(option);
+});
 
-        // Força pausa/toca para garantir que o estado seja aplicado
-        const soundComp = soundElement.components.sound;
-        if (soundComp) {
-          if (isSoundPlaying) {
-            soundComp.play();
-          } else {
-            soundComp.pause();
-          }
-        }
-      });
-    </script>
-  </body>
+/* ==============================
+   INICIAR AR
+================================ */
+startBtn.addEventListener("click", () => {
+  const id = parseInt(select.value);
+
+  if (!id) {
+    alert("Selecione um paciente!");
+    return;
+  }
+
+  selectedPatient = patients.find(p => p.id === id);
+
+  selectScreen.style.display = "none";
+  arScene.classList.remove("hidden");
+});
+
+/* ==============================
+   CLICK NO CORAÇÃO
+================================ */
+heartModel.addEventListener("click", () => {
+
+  if (!selectedPatient) return;
+
+  document.getElementById("modal-name").textContent = selectedPatient.name;
+  document.getElementById("modal-age").textContent = selectedPatient.age;
+  document.getElementById("modal-bpm").textContent = selectedPatient.bpm;
+  document.getElementById("modal-spo2").textContent = selectedPatient.spo2;
+
+  patientPage.style.display = "flex";
+
+  heartModel.pause();
+});
+
+/* ==============================
+   FECHAR MODAL
+================================ */
+closeBtn.addEventListener("click", () => {
+  patientPage.style.display = "none";
+  heartModel.play();
+});
+
+</script>
+</body>
 </html>
