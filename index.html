@@ -1,182 +1,98 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<title>AR - Sistema Médico</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
-<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-}
-
-/* Tela inicial */
-#patient-select-screen {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg,#111,#222);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-select, button {
-  padding: 12px;
-  margin-top: 15px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: none;
-}
-
-button {
-  background: #ff4d4d;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* Modal paciente */
-#patient-page {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.85);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-.patient-card {
-  background: white;
-  color: black;
-  padding: 25px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ficha do Paciente</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f8f9fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #c0392b;
+      margin-top: 0;
+      text-align: center;
+    }
+    dl {
+      margin: 24px 0;
+    }
+    dt {
+      font-weight: 600;
+      color: #444;
+      margin: 16px 0 4px;
+    }
+    dd {
+      margin: 0 0 12px 0;
+      padding-left: 8px;
+      border-left: 3px solid #e74c3c;
+    }
+    .btn-back {
+      display: block;
+      margin: 32px auto 0;
+      padding: 12px 28px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .btn-back:hover {
+      background: #2980b9;
+    }
+  </style>
 </head>
-
 <body>
+  <div class="container">
+    <h1>Ficha do Paciente</h1>
 
-<!-- Tela de Seleção -->
-<div id="patient-select-screen">
-  <h1>Selecionar Paciente</h1>
+    <script>
+      const params = new URLSearchParams(window.location.search);
 
-  <select id="patientSelect">
-    <option value="">Escolha um paciente</option>
-  </select>
+      const nome        = params.get("nome")        || "—";
+      const idade       = params.get("idade")       || "—";
+      const profissao   = params.get("profissao")   || "—";
+      const doencas     = params.get("doencas")     || "—";
+      const alergias    = params.get("alergias")    || "—";
+      const medicamentos = params.get("medicamentos") || "—";
 
-  <button id="startAR">Iniciar AR</button>
-</div>
+      document.body.querySelector(".container").innerHTML += `
+        <dl>
+          <dt>Nome completo</dt>
+          <dd>${nome}</dd>
 
-<!-- Modal -->
-<div id="patient-page">
-  <div class="patient-card">
-    <h2>Ficha do Paciente</h2>
-    <p><strong>Nome:</strong> <span id="modal-name"></span></p>
-    <p><strong>Idade:</strong> <span id="modal-age"></span></p>
-    <p><strong>BPM:</strong> <span id="modal-bpm"></span></p>
-    <p><strong>SpO₂:</strong> <span id="modal-spo2"></span>%</p>
-    <button id="closePatient">Fechar</button>
+          <dt>Idade</dt>
+          <dd>${idade} anos</dd>
+
+          <dt>Profissão</dt>
+          <dd>${profissao}</dd>
+
+          <dt>Doenças / Comorbidades</dt>
+          <dd>${doencas}</dd>
+
+          <dt>Alergias</dt>
+          <dd>${alergias}</dd>
+
+          <dt>Medicamentos em uso</dt>
+          <dd>${medicamentos}</dd>
+        </dl>
+
+        <button class="btn-back" onclick="window.close()">Voltar para AR</button>
+      `;
+    </script>
   </div>
-</div>
-
-<script>
-
-/* ===== Base fake ===== */
-const patients = [
-  { id: 1, name: "João Silva", age: 54, bpm: 88, spo2: 97 },
-  { id: 2, name: "Maria Souza", age: 62, bpm: 102, spo2: 95 },
-  { id: 3, name: "Carlos Mendes", age: 45, bpm: 76, spo2: 98 }
-];
-
-let selectedPatient = null;
-
-/* ===== Elementos ===== */
-const select = document.getElementById("patientSelect");
-const startBtn = document.getElementById("startAR");
-const selectScreen = document.getElementById("patient-select-screen");
-const patientPage = document.getElementById("patient-page");
-const closeBtn = document.getElementById("closePatient");
-
-/* Popular select */
-patients.forEach(p => {
-  const option = document.createElement("option");
-  option.value = p.id;
-  option.textContent = p.name;
-  select.appendChild(option);
-});
-
-/* Iniciar AR */
-startBtn.addEventListener("click", () => {
-  const id = parseInt(select.value);
-
-  if (!id) {
-    alert("Selecione um paciente!");
-    return;
-  }
-
-  selectedPatient = patients.find(p => p.id === id);
-
-  selectScreen.remove();
-
-  createARScene();
-});
-
-/* ===== Criar cena dinamicamente ===== */
-function createARScene() {
-
-  const scene = document.createElement("a-scene");
-  scene.setAttribute("embedded", "");
-  scene.setAttribute("arjs", "sourceType: webcam; debugUIEnabled: false;");
-
-  scene.innerHTML = `
-    <a-marker preset="hiro" cursor="rayOrigin: mouse;">
-      <a-entity position="0 0.3 0">
-        <a-entity
-          id="heart-model"
-          gltf-model="url(realistic_human_heart.glb)"
-          scale="1 1 1"
-          animation="property: scale; from: 0.95 0.95 0.95; to: 1.05 1.05 1.05; dir: alternate; dur: 800; loop: true"
-        ></a-entity>
-      </a-entity>
-    </a-marker>
-    <a-entity camera></a-entity>
-  `;
-
-  document.body.appendChild(scene);
-
-  /* Esperar carregar */
-  scene.addEventListener("loaded", () => {
-    const heartModel = document.getElementById("heart-model");
-
-    heartModel.addEventListener("click", () => {
-      document.getElementById("modal-name").textContent = selectedPatient.name;
-      document.getElementById("modal-age").textContent = selectedPatient.age;
-      document.getElementById("modal-bpm").textContent = selectedPatient.bpm;
-      document.getElementById("modal-spo2").textContent = selectedPatient.spo2;
-
-      patientPage.style.display = "flex";
-      heartModel.pause();
-    });
-
-    closeBtn.addEventListener("click", () => {
-      patientPage.style.display = "none";
-      heartModel.play();
-    });
-
-  });
-}
-
-</script>
 </body>
 </html>
