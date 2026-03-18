@@ -23,7 +23,7 @@
         overflow: hidden;
         font-family: Arial, Helvetica, sans-serif;
       }
-      
+
       #ar-overlay {
         position: absolute;
         top: 20px;
@@ -36,22 +36,22 @@
         padding: 15px 20px;
         border-radius: 15px;
         backdrop-filter: blur(5px);
-        border: 1px solid rgba(255,255,255,0.2);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         min-width: 200px;
       }
-      
+
       #ar-overlay p {
         margin: 5px 0;
         font-size: 14px;
         opacity: 0.9;
       }
-      
+
       #heart-rate-container {
         margin-top: 15px;
         padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.3);
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
       }
-      
+
       #heart-rate-title {
         font-size: 16px;
         font-weight: bold;
@@ -60,7 +60,7 @@
         text-transform: uppercase;
         letter-spacing: 1px;
       }
-      
+
       #heart-rate-value {
         font-size: 32px;
         font-weight: bold;
@@ -68,7 +68,7 @@
         display: inline-block;
         margin-right: 10px;
       }
-      
+
       #heart-rate-status {
         font-size: 14px;
         padding: 4px 10px;
@@ -78,7 +78,7 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
-      
+
       #heart-rate-info {
         margin-top: 10px;
         font-size: 13px;
@@ -86,52 +86,58 @@
         flex-direction: column;
         gap: 5px;
       }
-      
+
       .normal-range {
         color: #aaa;
         font-size: 12px;
       }
-      
+
       /* Cores para diferentes status */
       .status-normal {
         background: rgba(76, 175, 80, 0.3);
         color: #4caf50;
         border: 1px solid #4caf50;
       }
-      
+
       .status-alta {
         background: rgba(244, 67, 54, 0.3);
         color: #f44336;
         border: 1px solid #f44336;
         animation: pulse-alert 1s infinite;
       }
-      
+
       .status-baixa {
         background: rgba(33, 150, 243, 0.3);
         color: #2196f3;
         border: 1px solid #2196f3;
       }
-      
+
       .status-muito-alta {
         background: rgba(156, 39, 176, 0.3);
         color: #9c27b0;
         border: 1px solid #9c27b0;
         animation: pulse-alert 0.5s infinite;
       }
-      
+
       @keyframes pulse-alert {
-        0% { opacity: 1; }
-        50% { opacity: 0.7; }
-        100% { opacity: 1; }
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+        100% {
+          opacity: 1;
+        }
       }
-      
+
       #last-update {
         font-size: 11px;
         color: #888;
         margin-top: 8px;
         text-align: right;
       }
-      
+
       #instructions {
         margin-top: 15px;
         font-size: 12px;
@@ -142,30 +148,33 @@
   <body>
     <!-- Overlay com informações dos batimentos -->
     <div id="ar-overlay">
-      <p>👆 Clique no coração: Play/Pause som</p>
       <p>🤌 Dois dedos: Zoom</p>
       <p>👉 Dedos presionado: Rotação</p>
-      
+
       <div id="heart-rate-container">
         <div id="heart-rate-title">❤️ BATIMENTOS CARDÍACOS</div>
-        
-        <div style="display: flex; align-items: center; justify-content: space-between;">
+
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
           <span id="heart-rate-value">--</span>
           <span id="heart-rate-status" class="status-normal">---</span>
         </div>
-        
+
         <div id="heart-rate-info">
-          <span>Normal: <span style="color: #4caf50;">60-100 BPM</span></span>
+          <span>Normal: <span style="color: #4caf50">60-100 BPM</span></span>
           <span class="normal-range">Leve alteração: 50-59 ou 101-120</span>
           <span class="normal-range">Crítico: abaixo 50 ou acima 120</span>
         </div>
-        
+
         <div id="last-update">⏱️ Atualizando...</div>
       </div>
-      
-      <div id="instructions">
-        📊 Simulando variação natural dos batimentos
-      </div>
+
+      <div id="instructions">📊 Simulando variação natural dos batimentos</div>
     </div>
 
     <a-scene
@@ -198,35 +207,35 @@
 
     <script>
       // Elementos do overlay
-      const heartRateValue = document.getElementById('heart-rate-value');
-      const heartRateStatus = document.getElementById('heart-rate-status');
-      const lastUpdate = document.getElementById('last-update');
-      
+      const heartRateValue = document.getElementById("heart-rate-value");
+      const heartRateStatus = document.getElementById("heart-rate-status");
+      const lastUpdate = document.getElementById("last-update");
+
       // Função para gerar valor aleatório de BPM (batimentos por minuto)
       function generateRandomBPM() {
         // Valores possíveis para simular diferentes estados
         const scenarios = [
           // Normal: 60-100
           { min: 60, max: 100, weight: 60 }, // 60% de chance
-          
+
           // Levemente baixo: 50-59
-          { min: 50, max: 59, weight: 15 },  // 15% de chance
-          
+          { min: 50, max: 59, weight: 15 }, // 15% de chance
+
           // Levemente alto: 101-120
           { min: 101, max: 120, weight: 15 }, // 15% de chance
-          
+
           // Muito baixo (crítico): 30-49
-          { min: 30, max: 49, weight: 5 },    // 5% de chance
-          
+          { min: 30, max: 49, weight: 5 }, // 5% de chance
+
           // Muito alto (crítico): 121-160
-          { min: 121, max: 160, weight: 5 }   // 5% de chance
+          { min: 121, max: 160, weight: 5 }, // 5% de chance
         ];
-        
+
         // Escolher cenário baseado nos pesos
         let totalWeight = scenarios.reduce((sum, s) => sum + s.weight, 0);
         let random = Math.random() * totalWeight;
         let selectedScenario = scenarios[0];
-        
+
         for (let scenario of scenarios) {
           if (random < scenario.weight) {
             selectedScenario = scenario;
@@ -234,71 +243,84 @@
           }
           random -= scenario.weight;
         }
-        
+
         // Gerar valor aleatório dentro do intervalo do cenário escolhido
-        return Math.floor(Math.random() * (selectedScenario.max - selectedScenario.min + 1)) + selectedScenario.min;
+        return (
+          Math.floor(
+            Math.random() * (selectedScenario.max - selectedScenario.min + 1),
+          ) + selectedScenario.min
+        );
       }
-      
+
       // Função para classificar o BPM e retornar status e cor
       function classifyBPM(bpm) {
         if (bpm < 50) {
           return {
-            status: 'CRÍTICO - MUITO BAIXO',
-            class: 'status-muito-alta', // Reutilizando a classe roxa
-            color: '#9c27b0'
+            status: "CRÍTICO - MUITO BAIXO",
+            class: "status-muito-alta", // Reutilizando a classe roxa
+            color: "#9c27b0",
           };
         } else if (bpm < 60) {
           return {
-            status: 'BAIXO',
-            class: 'status-baixa',
-            color: '#2196f3'
+            status: "BAIXO",
+            class: "status-baixa",
+            color: "#2196f3",
           };
         } else if (bpm <= 100) {
           return {
-            status: 'NORMAL',
-            class: 'status-normal',
-            color: '#4caf50'
+            status: "NORMAL",
+            class: "status-normal",
+            color: "#4caf50",
           };
         } else if (bpm <= 120) {
           return {
-            status: 'ELEVADO',
-            class: 'status-alta',
-            color: '#f44336'
+            status: "ELEVADO",
+            class: "status-alta",
+            color: "#f44336",
           };
         } else {
           return {
-            status: 'CRÍTICO - MUITO ALTO',
-            class: 'status-muito-alta',
-            color: '#9c27b0'
+            status: "CRÍTICO - MUITO ALTO",
+            class: "status-muito-alta",
+            color: "#9c27b0",
           };
         }
       }
-      
+
       // Função para atualizar o display dos batimentos
       function updateHeartRate() {
         const bpm = generateRandomBPM();
         const classification = classifyBPM(bpm);
-        
+
         // Atualizar valor
-        heartRateValue.textContent = bpm + ' BPM';
+        heartRateValue.textContent = bpm + " BPM";
         heartRateValue.style.color = classification.color;
-        
+
         // Atualizar status
         heartRateStatus.textContent = classification.status;
-        
+
         // Remover todas as classes de status
-        heartRateStatus.classList.remove('status-normal', 'status-alta', 'status-baixa', 'status-muito-alta');
-        
+        heartRateStatus.classList.remove(
+          "status-normal",
+          "status-alta",
+          "status-baixa",
+          "status-muito-alta",
+        );
+
         // Adicionar a classe correta
         heartRateStatus.classList.add(classification.class);
-        
+
         // Atualizar timestamp
         const now = new Date();
-        const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const timeString = now.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
         lastUpdate.textContent = `⏱️ Última atualização: ${timeString}`;
-        
+
         // Feedback visual opcional - mudar animação do coração baseado no BPM
-        const heartModel = document.getElementById('heart-model');
+        const heartModel = document.getElementById("heart-model");
         if (heartModel) {
           // Ajustar velocidade da animação baseado no BPM
           // (se você tiver uma animação de pulsação, pode ajustar aqui)
@@ -306,23 +328,26 @@
           console.log(`BPM: ${bpm} - Pulso a cada ${pulseSpeed.toFixed(0)}ms`);
         }
       }
-      
+
       // Iniciar atualizações periódicas
       function startHeartRateSimulation() {
         // Atualizar imediatamente
         updateHeartRate();
-        
+
         // Atualizar a cada 3-6 segundos (simulando variação natural)
-        setInterval(() => {
-          updateHeartRate();
-        }, 3000 + Math.random() * 3000); // Entre 3 e 6 segundos
+        setInterval(
+          () => {
+            updateHeartRate();
+          },
+          3000 + Math.random() * 3000,
+        ); // Entre 3 e 6 segundos
       }
-      
+
       // Controle do som (seu código original)
-      const heartModel = document.getElementById('heart-model');
-      
+      const heartModel = document.getElementById("heart-model");
+
       if (heartModel) {
-        heartModel.addEventListener('click', function() {
+        heartModel.addEventListener("click", function () {
           const soundComp = this.components.sound;
           if (soundComp) {
             if (soundComp.isPlaying) {
@@ -333,22 +358,28 @@
           }
         });
       }
-      
+
       // Iniciar a simulação quando a página carregar
-      document.addEventListener('DOMContentLoaded', startHeartRateSimulation);
-      
+      document.addEventListener("DOMContentLoaded", startHeartRateSimulation);
+
       // Opcional: Gerar valores extremos para teste (clique no overlay)
-      document.getElementById('ar-overlay').addEventListener('dblclick', function() {
-        // Forçar valor crítico para teste
-        const criticalBPM = Math.random() > 0.5 ? 45 : 145;
-        heartRateValue.textContent = criticalBPM + ' BPM';
-        const classification = classifyBPM(criticalBPM);
-        heartRateValue.style.color = classification.color;
-        heartRateStatus.textContent = classification.status;
-        heartRateStatus.classList.remove('status-normal', 'status-alta', 'status-baixa', 'status-muito-alta');
-        heartRateStatus.classList.add(classification.class);
-      });
-      
+      document
+        .getElementById("ar-overlay")
+        .addEventListener("dblclick", function () {
+          // Forçar valor crítico para teste
+          const criticalBPM = Math.random() > 0.5 ? 45 : 145;
+          heartRateValue.textContent = criticalBPM + " BPM";
+          const classification = classifyBPM(criticalBPM);
+          heartRateValue.style.color = classification.color;
+          heartRateStatus.textContent = classification.status;
+          heartRateStatus.classList.remove(
+            "status-normal",
+            "status-alta",
+            "status-baixa",
+            "status-muito-alta",
+          );
+          heartRateStatus.classList.add(classification.class);
+        });
     </script>
   </body>
 </html>
