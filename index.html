@@ -36,7 +36,11 @@
     <!-- Mensagem de ajuda (opcional) -->
     <div id="ar-overlay">
       <p>Pinch → Zoom<br />Dois dedos girando → Rotação</p>
+      <p>Clique no coração → Toca som</p>
     </div>
+
+    <!-- Áudio escondido -->
+    <audio id="heart-sound" src="coracao-som.mp3" preload="auto"></audio>
 
     <a-scene
       embedded
@@ -54,9 +58,33 @@
           scale="1 1 1"
           position="0 0 0"
           rotation="0 0 0"
+          id="heart-model"
+          eventsource
         >
         </a-entity>
       </a-marker>
     </a-scene>
+
+    <script>
+      // Aguarda o carregamento da cena
+      document.addEventListener('DOMContentLoaded', function() {
+        const audio = document.getElementById('heart-sound');
+        const heartModel = document.getElementById('heart-model');
+        
+        // Toca o áudio quando clicar no modelo 3D
+        if (heartModel) {
+          heartModel.addEventListener('click', function() {
+            if (audio.paused) {
+              audio.play().catch(function(error) {
+                console.log('Erro ao tocar áudio:', error);
+              });
+            } else {
+              audio.pause();
+              audio.currentTime = 0;
+            }
+          });
+        }
+      });
+    </script>
   </body>
 </html>
