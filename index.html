@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>Meu Projeto AR com Gestos</title>
+    <title>Meu Projeto AR com Gestos e Áudio</title>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
@@ -36,21 +36,22 @@
     <!-- Mensagem de ajuda (opcional) -->
     <div id="ar-overlay">
       <p>Pinch → Zoom<br />Dois dedos girando → Rotação</p>
-      <p>Clique no coração → Toca som</p>
     </div>
-
-    <!-- Áudio escondido -->
-    <audio id="heart-sound" src="coracao-som.mp3" preload="auto"></audio>
 
     <a-scene
       embedded
       arjs="sourceType: webcam; debugUIEnabled: false;"
       gesture-detector
     >
+      <!-- Assets para carregar o áudio -->
+      <a-assets>
+        <audio id="heart-sound" src="coracao-som.mp3" preload="auto"></audio>
+      </a-assets>
+
       <!-- Camera -->
       <a-entity camera></a-entity>
 
-      <a-marker preset="hiro">
+      <a-marker preset="hiro" id="heart-marker">
         <a-entity
           class="tocavel"
           gesture-handler="enabled: true"
@@ -59,32 +60,29 @@
           position="0 0 0"
           rotation="0 0 0"
           id="heart-model"
-          eventsource
+          sound="src: #heart-sound; autoplay: true; loop: true; volume: 0.7; positional: false"
         >
         </a-entity>
       </a-marker>
     </a-scene>
 
     <script>
-      // Aguarda o carregamento da cena
-      document.addEventListener('DOMContentLoaded', function() {
-        const audio = document.getElementById('heart-sound');
-        const heartModel = document.getElementById('heart-model');
-        
-        // Toca o áudio quando clicar no modelo 3D
-        if (heartModel) {
-          heartModel.addEventListener('click', function() {
-            if (audio.paused) {
-              audio.play().catch(function(error) {
-                console.log('Erro ao tocar áudio:', error);
-              });
+      // Opcional: Controle manual do som se precisar
+      const heartModel = document.getElementById('heart-model');
+      
+      // Se quiser pausar/tocar quando clicar no modelo
+      if (heartModel) {
+        heartModel.addEventListener('click', function() {
+          const soundComp = this.components.sound;
+          if (soundComp) {
+            if (soundComp.isPlaying) {
+              soundComp.pause();
             } else {
-              audio.pause();
-              audio.currentTime = 0;
+              soundComp.play();
             }
-          });
-        }
-      });
+          }
+        });
+      }
     </script>
   </body>
 </html>
