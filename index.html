@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>Meu Projeto AR com Gestos e Áudio</title>
+    <title>AR com Troca de Modelos</title>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
@@ -13,76 +13,190 @@
     <!-- AR.js -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-    <!-- Gesture support para AR.js (pinch zoom + rotate) -->
+    <!-- Gesture support -->
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-detector.js"></script>
     <script src="https://raw.githack.com/fcor/arjs-gestures/master/gesture-handler.js"></script>
 
     <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
+      body { margin: 0; overflow: hidden; }
       #ar-overlay {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        font-family: Arial;
-        pointer-events: none;
+        position: absolute; top: 10px; left: 10px;
+        color: white; font-family: Arial;
+        background: rgba(0,0,0,0.5); padding: 10px;
+        border-radius: 5px; z-index: 1000;
+      }
+      #model-name {
+        position: absolute; bottom: 30px; left: 50%;
+        transform: translateX(-50%);
+        color: white; background: rgba(255,0,0,0.7);
+        padding: 10px 20px; border-radius: 20px;
+        font-family: Arial; transition: opacity 0.3s;
       }
     </style>
   </head>
   <body>
-    <!-- Mensagem de ajuda (opcional) -->
     <div id="ar-overlay">
-      <p>Pinch → Zoom<br />Dois dedos girando → Rotação</p>
+      <p>Pinch → Zoom<br />Dois dedos girando → Rotação<br />Duplo clique → Troca modelo</p>
     </div>
+    
+    <div id="model-name">❤️ Coração Humano</div>
 
     <a-scene
       embedded
       arjs="sourceType: webcam; debugUIEnabled: false;"
       gesture-detector
     >
-      <!-- Assets para carregar o áudio -->
       <a-assets>
-        <audio id="heart-sound" src="coracao-som.mp3" preload="auto"></audio>
+        <audio id="heart-sound" src="coracao-som.mp3" preload="auto" crossorigin="anonymous"></audio>
+        
+        <!-- Lista de modelos disponíveis -->
+        <a-asset-item id="heart-model-1" src="url(realistic_human_heart.glb)"></a-asset-item>
+        <a-asset-item id="heart-model-2" src="url(gg.glb)"></a-asset-item>
+        <a-asset-item id="heart-model-3" src="url(heart_anatomy.glb)"></a-asset-item>
       </a-assets>
 
-      <!-- Camera -->
       <a-entity camera></a-entity>
 
       <a-marker preset="hiro" id="heart-marker">
         <a-entity
           class="tocavel"
           gesture-handler="enabled: true"
-          gltf-model="url(realistic_human_heart.glb)"
-          scale="1 1 1"
+          id="model-container"
           position="0 0 0"
+          scale="1 1 1"
           rotation="0 0 0"
-          id="heart-model"
-          sound="src: #heart-sound; autoplay: true; loop: true; volume: 10.0; positional: false"
         >
+          <!-- Modelo inicial -->
+          <a-entity
+            id="current-model"
+            gltf-model="#heart-model-1"
+            scale="1 1 1"
+            position="0 0 0"
+            rotation="0 0 0"
+            sound="src: #heart-sound; autoplay: true; loop: true; volume: 0.7; positional: false"
+          >
+          </a-entity>
         </a-entity>
       </a-marker>
     </a-scene>
 
     <script>
-      // Opcional: Controle manual do som se precisar
-      const heartModel = document.getElementById('heart-model');
+      // Configuração do áudio com ganho
+      const audioElement = document.getElementById('heart-sound');
+      let audioContext;
+      let gainNode;
+      let isAudioInitialized = false;
       
-      // Se quiser pausar/tocar quando clicar no modelo
-      if (heartModel) {
-        heartModel.addEventListener('click', function() {
-          const soundComp = this.components.sound;
-          if (soundComp) {
-            if (soundComp.isPlaying) {
-              soundComp.pause();
-            } else {
-              soundComp.play();
-            }
-          }
-        });
+      async function initAudio() {
+        if (isAudioInitialized) return;
+        
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioContext.createMediaElementSource(audioElement);
+          gainNode = audioContext.createGain();
+          gainNode.gain.value = 10.0; // Seu ganho de 10x
+          
+          source.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          isAudioInitialized = true;
+          console.log('Áudio configurado com ganho 10x');
+        } catch (error) {
+          console.error('Erro no áudio:', error);
+        }
       }
+      
+      // Controle de troca de modelos
+      const models = [
+        { id: '#heart-model-1', name: '❤️ Coração Humano' },
+        { id: '#heart-model-2', name: '💙 Coração Estilizado' },
+        { id: '#heart-model-3', name: '🫀 Anatomia' }
+      ];
+      
+      let currentModelIndex = 0;
+      const container = document.getElementById('model-container');
+      const modelNameDisplay = document.getElementById('model-name');
+      let clickTimer = null;
+      
+      // Função para trocar o modelo
+      function swapModel() {
+        // Avança para o próximo modelo
+        currentModelIndex = (currentModelIndex + 1) % models.length;
+        const nextModel = models[currentModelIndex];
+        
+        // Remove o modelo atual
+        const currentModel = document.getElementById('current-model');
+        if (currentModel) {
+          currentModel.remove();
+        }
+        
+        // Cria o novo modelo
+        const newModel = document.createElement('a-entity');
+        newModel.setAttribute('id', 'current-model');
+        newModel.setAttribute('gltf-model', nextModel.id);
+        newModel.setAttribute('scale', '1 1 1');
+        newModel.setAttribute('position', '0 0 0');
+        newModel.setAttribute('rotation', '0 0 0');
+        newModel.setAttribute('sound', 'src: #heart-sound; autoplay: true; loop: true; volume: 0.7; positional: false');
+        
+        // Adiciona ao container
+        container.appendChild(newModel);
+        
+        // Atualiza o nome exibido
+        modelNameDisplay.textContent = nextModel.name;
+        modelNameDisplay.style.background = 'rgba(0,255,0,0.7)';
+        
+        // Volta à cor normal após 1 segundo
+        setTimeout(() => {
+          modelNameDisplay.style.background = 'rgba(255,0,0,0.7)';
+        }, 1000);
+        
+        console.log('Modelo trocado para:', nextModel.name);
+      }
+      
+      // Detector de duplo clique
+      container.addEventListener('click', function(e) {
+        if (clickTimer) {
+          // Segundo clique - duplo clique
+          clearTimeout(clickTimer);
+          clickTimer = null;
+          swapModel();
+        } else {
+          // Primeiro clique - aguarda para ver se é duplo
+          clickTimer = setTimeout(() => {
+            clickTimer = null;
+            // Clique simples - pode adicionar outra ação se quiser
+          }, 300);
+        }
+      });
+      
+      // Áudio com marcador
+      const marker = document.getElementById('heart-marker');
+      
+      marker.addEventListener('markerFound', async () => {
+        console.log('Marcador encontrado');
+        await initAudio();
+        
+        if (audioContext && audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        
+        audioElement.loop = true;
+        audioElement.play().catch(e => console.log('Autoplay:', e));
+      });
+      
+      marker.addEventListener('markerLost', () => {
+        console.log('Marcador perdido');
+        audioElement.pause();
+      });
+      
+      // Inicialização
+      document.body.addEventListener('click', async () => {
+        if (audioContext && audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+      }, { once: true });
+      
     </script>
   </body>
 </html>
